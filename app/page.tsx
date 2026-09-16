@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   Background,
   BaseEdge,
@@ -15,6 +15,7 @@ import {
   getBezierPath,
   MarkerType,
   useEdgesState,
+  useInternalNode,
   useNodesState,
   useReactFlow,
   type Connection,
@@ -23,7 +24,7 @@ import {
   type Node,
   type NodeProps,
 } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
+import { routeEdge } from '../lib/edge-geometry'
 
 type AutomataNodeData = { label: string; kind: 'start' | 'state' | 'accept' }
 type AutomataNode = Node<AutomataNodeData>
@@ -44,37 +45,33 @@ function StateNode({ data, selected }: NodeProps<AutomataNode>) {
   return <div className={`automata-node automata-node-${data.kind} ${selected ? 'is-selected' : ''}`}><Handle type="target" position={Position.Left} id="target" /><span className="initial-marker" aria-hidden="true" />{data.label}<Handle type="source" position={Position.Right} id="source" /></div>
 }
 
-type RoutedEdgeData = { curved?: boolean; curveSide?: 1 | -1; label?: string }
-type RoutedEdgeProps = EdgeProps<RoutedEdge<RoutedEdgeData>>
-type RoutedEdge = Edge<RoutedEdgeData>
+type RoutedEdgeData = { curved?: boolean }
+type AutomataEdge = Edge<RoutedEdgeData>
 
-function RoutedEdge({ id, source, target, sourceX, sourceY, targetX, targetY, markerEnd, style, data, label }: RoutedEdgeProps) {
-  const isSelfLoop = source === target || sourceX === targetX && sourceY === targetY
-  const curve = data?.curved ? 62 : 0
-  const dx = targetX - sourceX
-  const dy = targetY - sourceY
-  const length = Math.max(1, Math.hypot(dx, dy))
-  const nx = -dy / length
-  const ny = dx / length
-  const midX = (sourceX + targetX) / 2 + nx * curve * (data?.curveSide ?? 1)
-  const midY = (sourceY + targetY) / 2 + ny * curve * (data?.curveSide ?? 1)
-  const controlX = curve ? midX : (sourceX + targetX) / 2
-  const controlY = curve ? midY : (sourceY + targetY) / 2
-  const startLength = Math.max(1, Math.hypot(controlX - sourceX, controlY - sourceY))
-  const endLength = Math.max(1, Math.hypot(targetX - controlX, targetY - controlY))
-  const radius = 38
-  const pathSourceX = sourceX + ((controlX - sourceX) / startLength) * radius
-  const pathSourceY = sourceY + ((controlY - sourceY) / startLength) * radius
-  const pathTargetX = targetX - ((targetX - controlX) / endLength) * radius
-  const pathTargetY = targetY - ((targetY - controlY) / endLength) * radius
-  const path = isSelfLoop
-    ? `M ${sourceX} ${sourceY} C ${sourceX - 54} ${sourceY - 66}, ${sourceX + 54} ${sourceY - 66}, ${targetX} ${targetY}`
-    : curve ? `M ${pathSourceX} ${pathSourceY} Q ${controlX} ${controlY} ${pathTargetX} ${pathTargetY}` : `M ${pathSourceX} ${pathSourceY} L ${pathTargetX} ${pathTargetY}`
-  const labelX = isSelfLoop ? sourceX : curve ? midX : (sourceX + targetX) / 2
-  const labelY = isSelfLoop ? sourceY - 54 : curve ? midY : (sourceY + targetY) / 2 - 12
+function RoutedEdge({ id, source, target, style, data, label, selected }: EdgeProps<AutomataEdge>) {
+  const sourceNode = useInternalNode(source)
+  const targetNode = useInternalNode(target)
+  const markerId = `transition-arrow-${useId().replace(/:/g, '')}`
+  if (!sourceNode || !targetNode) return null
+  const circle = (node: typeof sourceNode) => {
+    const width = node.measured.width ?? 74
+    const height = node.measured.height ?? 74
+    return { x: node.internals.positionAbsolute.x + width / 2,
+      y: node.internals.positionAbsolute.y + height / 2, radius: Math.min(width, height) / 2 }
+  }
+  const route = routeEdge(circle(sourceNode), circle(targetNode), source === target, !!data?.curved)
+  if (!route) return null
+  const color = selected ? '#c4b5fd' : String(style?.stroke ?? '#9292a0')
   return <>
-    <BaseEdge id={id} path={path} markerEnd={markerEnd} style={style} interactionWidth={24} />
-    {label && <EdgeLabelRenderer><div className="edge-label" style={{ transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)` }}>{label}</div></EdgeLabelRenderer>}
+    <defs><marker id={markerId} viewBox="0 0 10 10" refX="10" refY="5"
+      markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto" overflow="visible">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill={color} stroke="none" />
+    </marker></defs>
+    <BaseEdge id={id} path={route.path} markerEnd={`url(#${markerId})`}
+      style={{ ...style, stroke: color }} interactionWidth={24} />
+    {label != null && <EdgeLabelRenderer><div className="edge-label" style={{
+      transform: `translate(-50%, -50%) translate(${route.label.x}px,${route.label.y}px)`
+    }}>{label}</div></EdgeLabelRenderer>}
   </>
 }
 const nodeTypes = { state: StateNode, start: StateNode, accept: StateNode }
@@ -100,7 +97,7 @@ function AutomataLab() {
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow()
   const nodeCounts = useMemo(() => ({ start: nodes.filter((node) => node.data.kind === 'start').length, state: nodes.filter((node) => node.data.kind === 'state').length, accept: nodes.filter((node) => node.data.kind === 'accept').length }), [nodes])
   const connectingNode = nodes.find((node) => node.id === connectingId)
-  const routedEdges = useMemo(() => edges.map((edge) => { const reversePair = edges.some((other) => other.id !== edge.id && other.source === edge.target && other.target === edge.source); return { ...edge, type: 'routed', data: { ...edge.data, curved: reversePair, curveSide: edge.source < edge.target ? 1 : -1 } } }), [edges])
+  const routedEdges = useMemo(() => edges.map((edge) => { const reversePair = edges.some((other) => other.id !== edge.id && other.source === edge.target && other.target === edge.source); return { ...edge, type: 'routed', data: { ...edge.data, curved: reversePair } } }), [edges])
 
   const onConnect = useCallback((connection: Connection) => setEdges((current) => addEdge({ ...connection, type: 'routed', style: edgeStyle, markerEnd: edgeMarker }, current)), [setEdges])
   const onDragStart = useCallback((event: React.DragEvent, kind: AutomataNodeData['kind']) => { event.dataTransfer.setData('application/automata-node', kind); event.dataTransfer.effectAllowed = 'move' }, [])
@@ -134,7 +131,7 @@ function AutomataLab() {
   return <main className="app-shell" onKeyDown={onKeyDown} tabIndex={-1}>
     <header className="topbar"><div className="brand"><span className="brand-mark">⌁</span><span>Automata Lab</span><span className="version-pill">v1.0</span></div><div className="top-actions"><button className="icon-button" type="button" aria-label="Undo">↶</button><button className="icon-button muted" type="button" aria-label="Redo">↷</button><span className="top-divider" /><button className="text-button" type="button">Export</button><button className="run-button" type="button"><span>▶</span> Run</button><div className="avatar">JD</div></div></header>
     <section className="workspace"><aside className="sidebar"><div className="sidebar-heading"><div><p className="eyebrow">BUILD</p><h1>Finite Automaton</h1></div><button className="more-button" type="button" aria-label="More options">•••</button></div><p className="sidebar-description">Design and test your deterministic finite automata.</p><div className="sidebar-section"><div className="section-label"><span>COMPONENTS</span><span className="count">{nodes.length}</span></div><div className="palette-list"><PaletteItem kind="start" title="Start state" subtitle="Initial entry point" onDragStart={onDragStart} /><PaletteItem kind="state" title="State" subtitle="Standard state" onDragStart={onDragStart} /><PaletteItem kind="accept" title="Accept state" subtitle="Final state" onDragStart={onDragStart} /></div></div><div className="sidebar-section graph-summary"><div className="section-label"><span>GRAPH SUMMARY</span></div><div className="summary-row"><span>States</span><strong>{nodes.length}</strong></div><div className="summary-row"><span>Transitions</span><strong>{edges.length}</strong></div><div className="summary-row"><span>Accepting</span><strong>{nodeCounts.accept}</strong></div></div><div className="sidebar-footer"><span className="status-dot" />All changes saved</div></aside>
-      <section className="canvas-area"><div className="canvas-toolbar"><div className="toolbar-label"><span className="live-dot" />CANVAS <span className="slash">/</span> Untitled automaton</div><div className="toolbar-actions"><button className="tool-button" type="button" onClick={renameSelected}>✎ <span>Rename</span></button><button className="tool-button danger" type="button" onClick={deleteSelected}>⌫ <span>Delete</span></button></div></div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move' }} onMouseMove={onPaneMouseMove} onClick={() => document.activeElement instanceof HTMLElement && document.activeElement.blur()}>{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, selected: node.id === selectedId || node.id === connectingId, draggable: !connectingId }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeClick={onNodeClick} onNodeDoubleClick={onNodeDoubleClick} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} fitView fitViewOptions={{ padding: 0.35 }} minZoom={0.35} maxZoom={2}><Background color="#303039" gap={24} size={1} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => node.data.kind === 'accept' ? '#a78bfa' : node.data.kind === 'start' ? '#67e8f9' : '#71717a'} maskColor="rgba(17,17,22,.75)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target state · Esc to cancel</div> : <div className="canvas-hint">Drag components from the sidebar onto the canvas</div>}</div></section>
+      <section className="canvas-area"><div className="canvas-toolbar"><div className="toolbar-label"><span className="live-dot" />CANVAS <span className="slash">/</span> Untitled automaton</div><div className="toolbar-actions"><button className="tool-button" type="button" onClick={renameSelected}>✎ <span>Rename</span></button><button className="tool-button danger" type="button" onClick={deleteSelected}>⌫ <span>Delete</span></button></div></div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move' }} onMouseMove={onPaneMouseMove} onClick={() => document.activeElement instanceof HTMLElement && document.activeElement.blur()}>{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, selected: node.id === selectedId || node.id === connectingId, draggable: !connectingId }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeClick={onNodeClick} onNodeDoubleClick={onNodeDoubleClick} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={{ padding: 0.35 }} minZoom={0.35} maxZoom={2}><Background color="#303039" gap={24} size={1} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => node.data.kind === 'accept' ? '#a78bfa' : node.data.kind === 'start' ? '#67e8f9' : '#71717a'} maskColor="rgba(17,17,22,.75)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target state · Esc to cancel</div> : <div className="canvas-hint">Drag components from the sidebar onto the canvas</div>}</div></section>
     </section>
   </main>
 }
