@@ -44,7 +44,7 @@ function StateNode({ data, selected }: NodeProps<AutomataNode>) {
   return <div className={`automata-node automata-node-${data.kind} ${selected ? 'is-selected' : ''}`}><Handle type="target" position={Position.Left} id="target" /><span className="initial-marker" aria-hidden="true" />{data.label}<Handle type="source" position={Position.Right} id="source" /></div>
 }
 
-type RoutedEdgeData = { curved?: boolean; label?: string }
+type RoutedEdgeData = { curved?: boolean; curveSide?: 1 | -1; label?: string }
 type RoutedEdgeProps = EdgeProps<RoutedEdge<RoutedEdgeData>>
 type RoutedEdge = Edge<RoutedEdgeData>
 
@@ -56,11 +56,20 @@ function RoutedEdge({ id, source, target, sourceX, sourceY, targetX, targetY, ma
   const length = Math.max(1, Math.hypot(dx, dy))
   const nx = -dy / length
   const ny = dx / length
-  const midX = (sourceX + targetX) / 2 + nx * curve
-  const midY = (sourceY + targetY) / 2 + ny * curve
+  const midX = (sourceX + targetX) / 2 + nx * curve * (data?.curveSide ?? 1)
+  const midY = (sourceY + targetY) / 2 + ny * curve * (data?.curveSide ?? 1)
+  const controlX = curve ? midX : (sourceX + targetX) / 2
+  const controlY = curve ? midY : (sourceY + targetY) / 2
+  const startLength = Math.max(1, Math.hypot(controlX - sourceX, controlY - sourceY))
+  const endLength = Math.max(1, Math.hypot(targetX - controlX, targetY - controlY))
+  const radius = 38
+  const pathSourceX = sourceX + ((controlX - sourceX) / startLength) * radius
+  const pathSourceY = sourceY + ((controlY - sourceY) / startLength) * radius
+  const pathTargetX = targetX - ((targetX - controlX) / endLength) * radius
+  const pathTargetY = targetY - ((targetY - controlY) / endLength) * radius
   const path = isSelfLoop
     ? `M ${sourceX} ${sourceY} C ${sourceX - 54} ${sourceY - 66}, ${sourceX + 54} ${sourceY - 66}, ${targetX} ${targetY}`
-    : curve ? `M ${sourceX} ${sourceY} Q ${midX} ${midY} ${targetX} ${targetY}` : `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`
+    : curve ? `M ${pathSourceX} ${pathSourceY} Q ${controlX} ${controlY} ${pathTargetX} ${pathTargetY}` : `M ${pathSourceX} ${pathSourceY} L ${pathTargetX} ${pathTargetY}`
   const labelX = isSelfLoop ? sourceX : curve ? midX : (sourceX + targetX) / 2
   const labelY = isSelfLoop ? sourceY - 54 : curve ? midY : (sourceY + targetY) / 2 - 12
   return <>
@@ -91,7 +100,7 @@ function AutomataLab() {
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow()
   const nodeCounts = useMemo(() => ({ start: nodes.filter((node) => node.data.kind === 'start').length, state: nodes.filter((node) => node.data.kind === 'state').length, accept: nodes.filter((node) => node.data.kind === 'accept').length }), [nodes])
   const connectingNode = nodes.find((node) => node.id === connectingId)
-  const routedEdges = useMemo(() => edges.map((edge) => ({ ...edge, type: 'routed', data: { ...edge.data, curved: edges.some((other) => other.id !== edge.id && other.source === edge.target && other.target === edge.source) } })), [edges])
+  const routedEdges = useMemo(() => edges.map((edge) => { const reversePair = edges.some((other) => other.id !== edge.id && other.source === edge.target && other.target === edge.source); return { ...edge, type: 'routed', data: { ...edge.data, curved: reversePair, curveSide: edge.source < edge.target ? 1 : -1 } } }), [edges])
 
   const onConnect = useCallback((connection: Connection) => setEdges((current) => addEdge({ ...connection, type: 'routed', style: edgeStyle, markerEnd: edgeMarker }, current)), [setEdges])
   const onDragStart = useCallback((event: React.DragEvent, kind: AutomataNodeData['kind']) => { event.dataTransfer.setData('application/automata-node', kind); event.dataTransfer.effectAllowed = 'move' }, [])
