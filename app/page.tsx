@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Background,
   Controls,
+  Handle,
   MiniMap,
   Position,
   ReactFlow,
@@ -32,12 +33,12 @@ const initialNodes: AutomataNode[] = [
   { id: 'q2', type: 'accept', position: { x: 800, y: 168 }, data: { label: 's2', kind: 'accept' } },
 ]
 const initialEdges: Edge[] = [
-  { id: 'e-q0-q1', source: 'q0', target: 'q1', label: 'a', type: 'bezier', style: edgeStyle, markerEnd: edgeMarker, labelStyle: { fill: '#d4d4d8', fontSize: 13 }, labelBgStyle: { fill: '#17171c', fillOpacity: 1 }, labelBgPadding: [5, 3], labelBgBorderRadius: 4 },
-  { id: 'e-q1-q2', source: 'q1', target: 'q2', label: 'b', type: 'bezier', style: edgeStyle, markerEnd: edgeMarker, labelStyle: { fill: '#d4d4d8', fontSize: 13 }, labelBgStyle: { fill: '#17171c', fillOpacity: 1 }, labelBgPadding: [5, 3], labelBgBorderRadius: 4 },
+  { id: 'e-q0-q1', source: 'q0', target: 'q1', label: 'a', type: 'default', style: edgeStyle, markerEnd: edgeMarker, labelStyle: { fill: '#d4d4d8', fontSize: 13 }, labelBgStyle: { fill: '#17171c', fillOpacity: 1 }, labelBgPadding: [5, 3], labelBgBorderRadius: 4 },
+  { id: 'e-q1-q2', source: 'q1', target: 'q2', label: 'b', type: 'default', style: edgeStyle, markerEnd: edgeMarker, labelStyle: { fill: '#d4d4d8', fontSize: 13 }, labelBgStyle: { fill: '#17171c', fillOpacity: 1 }, labelBgPadding: [5, 3], labelBgBorderRadius: 4 },
 ]
 
 function StateNode({ data, selected }: NodeProps<AutomataNode>) {
-  return <div className={`automata-node automata-node-${data.kind} ${selected ? 'is-selected' : ''}`}><span className="initial-marker" aria-hidden="true" />{data.label}</div>
+  return <div className={`automata-node automata-node-${data.kind} ${selected ? 'is-selected' : ''}`}><Handle type="target" position={Position.Left} id="target" /><span className="initial-marker" aria-hidden="true" />{data.label}<Handle type="source" position={Position.Right} id="source" /></div>
 }
 const nodeTypes = { state: StateNode, start: StateNode, accept: StateNode }
 
@@ -62,7 +63,7 @@ function AutomataLab() {
   const nodeCounts = useMemo(() => ({ start: nodes.filter((node) => node.data.kind === 'start').length, state: nodes.filter((node) => node.data.kind === 'state').length, accept: nodes.filter((node) => node.data.kind === 'accept').length }), [nodes])
   const connectingNode = nodes.find((node) => node.id === connectingId)
 
-  const onConnect = useCallback((connection: Connection) => setEdges((current) => addEdge({ ...connection, type: 'bezier', style: edgeStyle, markerEnd: edgeMarker }, current)), [setEdges])
+  const onConnect = useCallback((connection: Connection) => setEdges((current) => addEdge({ ...connection, type: 'default', style: edgeStyle, markerEnd: edgeMarker }, current)), [setEdges])
   const onDragStart = useCallback((event: React.DragEvent, kind: AutomataNodeData['kind']) => { event.dataTransfer.setData('application/automata-node', kind); event.dataTransfer.effectAllowed = 'move' }, [])
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault()
@@ -77,7 +78,7 @@ function AutomataLab() {
   const cancelConnection = useCallback(() => setConnectingId(null), [])
   const finishConnection = useCallback((targetId: string) => {
     if (!connectingId) return
-    setEdges((current) => addEdge({ id: `e-${connectingId}-${targetId}-${Date.now()}`, source: connectingId, target: targetId, type: 'bezier', style: edgeStyle, markerEnd: edgeMarker }, current))
+    setEdges((current) => addEdge({ id: `e-${connectingId}-${targetId}-${Date.now()}`, source: connectingId, target: targetId, type: 'default', style: edgeStyle, markerEnd: edgeMarker }, current))
     setConnectingId(null)
     setSelectedId(targetId)
   }, [connectingId, setEdges])
