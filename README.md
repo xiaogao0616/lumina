@@ -1,33 +1,40 @@
-# lumina
+# Automata Lab
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+A visual editor for building finite automata and testing strings against them, built with
+[Next.js](https://nextjs.org) and [React Flow](https://reactflow.dev).
 
-## Built with v0
+Live: https://xiaogao0616.github.io/lumina/
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
-
-[Continue working on v0 →](https://v0.app/chat/projects/prj_qyb2ON0zCUZUzCQRTULK8TpqYAvl)
-
-## Getting Started
-
-First, run the development server:
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-## Learn More
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm run build` | Static export into `out/` |
+| `npm run typecheck` | Generate Next.js route types, then `tsc --noEmit` |
+| `npm test` | Simulator unit tests (`node --test`) |
 
-To learn more, take a look at the following resources:
+## Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+Every push to `main` is built and published to GitHub Pages by
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+
+The site is served from the `/lumina` subpath, so the workflow passes the path reported by
+`actions/configure-pages` to the build as `NEXT_PUBLIC_BASE_PATH`, which `next.config.mjs`
+uses as `basePath`. The variable is empty during local development, so the app still runs at
+the root of `localhost:3000`.
+
+To build a subpath-hosted export locally:
+
+```bash
+NEXT_PUBLIC_BASE_PATH=/lumina npm run build
+```

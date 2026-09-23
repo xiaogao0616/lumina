@@ -1,0 +1,70 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+        with:
+          # Turns on Pages with the "GitHub Actions" source on the first run,
+          # so the repo needs no manual Settings change.
+          enablement: true
+
+      - name: Resolve base path
+        id: base
+        # configure-pages reports "/" for user/org sites and "/<repo>" for project
+        # sites; Next.js rejects "/" as a basePath, so normalize it to empty.
+        run: |
+          path='${{ steps.pages.outputs.base_path }}'
+          [ "$path" = "/" ] && path=''
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+
+      - name: Build static export
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.base.outputs.path }}
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
