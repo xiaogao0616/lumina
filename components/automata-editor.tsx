@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { createContext, useContext, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
-  ChevronDown, ChevronUp, CircleCheck, CirclePlus, CircleX, Dices, Download, GripVertical,
-  Minimize2, Pencil, Play, Redo2, TriangleAlert, Trash2, Undo2, Upload, Wand, X, Zap,
+  ArrowRightLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CirclePlus, CircleQuestionMark, CircleX, Copy, Dices, FileDown,
+  FileUp, FolderOpen, GripVertical, ImageDown, ListChecks, Minimize2, Pencil, Play, Redo2, Regex, Sparkles, TextCursorInput,
+  TriangleAlert, Trash2, Undo2, Wrench, X, Zap, type LucideIcon,
 } from 'lucide-react'
 import {
   Background,
@@ -362,10 +363,34 @@ function defaultEdgeSymbols(mode: AutomatonMode, source: string, alphabet: strin
   return current.some(edge => edge.source === source && transitionSymbols(edge).includes(first)) ? [] : [first]
 }
 
-function formatList(items: string[], empty: string) {
-  if (!items.length) return empty
-  if (items.length <= 3) return items.join('; ')
-  return `${items.slice(0, 3).join('; ')}; +${items.length - 3} more`
+/** Button + floating panel (menus, help, diagnostics). Closes on outside pointerdown or Escape. */
+function Dropdown({ label, trigger, title, className = '', triggerClassName = 'tool-button', align = 'start', role = 'menu', children }: {
+  label: string; trigger: React.ReactNode; title?: string; className?: string; triggerClassName?: string
+  align?: 'start' | 'end'; role?: 'menu' | 'dialog'; children: (close: () => void) => React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: PointerEvent) => { if (!rootRef.current?.contains(event.target as globalThis.Node)) setOpen(false) }
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => { document.removeEventListener('pointerdown', onPointerDown); window.removeEventListener('keydown', onKeyDown) }
+  }, [open])
+  return <div ref={rootRef} className={`dropdown ${className}`}>
+    <button type="button" className={triggerClassName} aria-haspopup={role === 'menu' ? 'menu' : 'dialog'} aria-expanded={open}
+      aria-label={label} title={title} onClick={() => setOpen(value => !value)}>{trigger}</button>
+    {open && <div className={`dropdown-panel is-${align} is-${role}`} role={role} aria-label={label}>{children(() => setOpen(false))}</div>}
+  </div>
+}
+
+function MenuItem({ icon: Icon, label, hint, disabled, onSelect, close }: {
+  icon: LucideIcon; label: string; hint?: string; disabled?: boolean; onSelect: () => void; close: () => void
+}) {
+  return <button type="button" className="menu-item" role="menuitem" disabled={disabled} onClick={() => { close(); onSelect() }}>
+    <Icon size={16} aria-hidden="true" /><span className="menu-item-copy"><span>{label}</span>{hint && <small>{hint}</small>}</span>
+  </button>
 }
 
 type OpenTab = (mode: AutomatonMode, graph?: AutomatonGraph, extras?: Parameters<typeof graphToSavedEditor>[2], title?: string) => void
@@ -374,6 +399,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
   const isDfa = mode === 'dfa'
   const [testPanelOpen, setTestPanelOpen] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [alphabetOpen, setAlphabetOpen] = useState(false)
   const [testString, setTestString] = useState('')
   const [convertError, setConvertError] = useState('')
   const testInputRef = useRef<HTMLInputElement>(null)
@@ -942,55 +968,121 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
     setExamples(findAcceptedStrings(result.graph, 5))
   }, [cancelConnection, isDfa, isStandardDfa, graph])
 
+  // Presentation-only derivations for the status strip and its diagnostics panel.
+  const branching = conflicts.filter(item => item.symbol !== 'ε')
+  const missingByState = new Map<string, { label: string; symbols: string[] }>()
+  for (const item of missing) {
+    const group = missingByState.get(item.source) ?? { label: item.sourceLabel, symbols: [] }
+    group.symbols.push(item.symbol)
+    missingByState.set(item.source, group)
+  }
+  const diagnosticIssues = [
+    missing.length ? `${missing.length} missing` : '',
+    conflicts.length ? `${conflicts.length} conflict${conflicts.length === 1 ? '' : 's'}` : '',
+    nodeCounts.start !== 1 ? (nodeCounts.start === 0 ? 'no start' : `${nodeCounts.start} starts`) : '',
+  ].filter(Boolean)
+  const diagnosticSummary = isDfa
+    ? (isStandardDfa ? 'Complete DFA' : diagnosticIssues.join(' · ') || 'Not deterministic')
+    : `${epsilonCount} ε · ${branching.length ? `${branching.length} branching` : 'No branching'}`
+  const diagnosticTone = isDfa ? (isStandardDfa ? 'is-good' : 'is-bad') : ''
+  const saveFailed = storageBlocked || saveStatus.startsWith('Could not')
+  const testHint = isDfa
+    ? (isStandardDfa ? 'Type a string, then press Enter or Run animated.' : 'Tests run once this is a complete DFA — open the diagnostics above to see what is missing.')
+    : 'Press Enter or Run animated. Leave blank to test ε.'
+
   if (!storageReady) return <main className="app-shell"><p role="status">Loading local graph…</p></main>
   return <TransitionContext.Provider value={transitionActions}><main className={`app-shell is-${mode}`} onKeyDown={onKeyDown} tabIndex={-1}>
     <header className="topbar">
-      <div className="topbar-row">
-        <div className="brand"><Link className="brand-home" href="/"><span className="brand-mark">⌁</span><span>Automata Lab</span></Link>
-          <span className={`mode-badge is-${mode}`}>{mode.toUpperCase()}</span>
-          <button className="tool-button" type="button" onClick={() => importInputRef.current?.click()} title="Load a JSON graph exported from this lab"><Upload size={14} /> Import</button>
-          <input ref={importInputRef} type="file" accept="application/json" className="file-input-hidden"
-            onChange={event => { const file = event.target.files?.[0]; if (file) importJson(file); event.target.value = '' }} />
-        </div>
-        <div className="top-actions">
-          <button className="tool-button" type="button" onClick={undo} disabled={!historyCounts.undo} title="Undo (Ctrl+Z)" aria-label="Undo"><Undo2 size={14} /></button>
-          <button className="tool-button" type="button" onClick={redo} disabled={!historyCounts.redo} title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><Redo2 size={14} /></button>
-          <button className="tool-button convert-button" type="button" onClick={convert}>{isDfa ? 'Open as NFA' : 'Convert to DFA'}</button>
-          <button className="run-button" type="button" aria-controls="string-test-content" aria-expanded={testPanelOpen} onClick={onRunClick}><Play size={13} /> Run</button>
-          <button className="tool-button" type="button" onClick={exportJson} title="Download this graph as JSON"><Download size={14} /> JSON</button>
-          <button className="tool-button" type="button" onClick={exportSvg} title="Download this graph as a static SVG"><Download size={14} /> SVG</button>
-        </div>
+      <div className="brand">
+        <Link className="brand-home" href="/" title="Automata Lab home"><span className="brand-mark" aria-hidden="true"><Zap size={14} /></span><span className="brand-name">Automata Lab</span></Link>
+        <span className={`mode-badge is-${mode}`} title={isDfa ? 'Deterministic finite automaton' : 'Nondeterministic finite automaton'}>{mode.toUpperCase()}</span>
+        <h1 className="sr-only">{isDfa ? 'Deterministic' : 'Nondeterministic'} finite automaton editor: {tabTitle}</h1>
       </div>
-      <div className="topbar-row topbar-row-secondary">
-        <div className="topbar-secondary-left">
-          {!isDfa && <div className="regex-popover-wrap">
-            <button className="tool-button" type="button" aria-expanded={regexPopoverOpen} onClick={() => setRegexPopoverOpen(open => !open)}><Wand size={14} /> Regex → NFA</button>
-            {regexPopoverOpen && <div className="regex-popover regex-section">
-              <form onSubmit={generateFromRegex}>
-                <label htmlFor="regex-input">Pattern (replaces this graph)</label>
-                <div><input id="regex-input" value={regexInput} placeholder="e.g. a(b|c)*d" autoFocus
-                  aria-invalid={!!regexError} onChange={event => { setRegexInput(event.target.value); setRegexError('') }} />
-                <button type="submit">Generate</button></div>
-                {regexError && <p role="alert">{regexError}</p>}
-              </form>
-              <small>Supports | * + ? ( ) and \ to escape a character. A blank spot means ε.</small>
-            </div>}
+      <span className="toolbar-divider" aria-hidden="true" />
+      <div className="toolbar-group" role="group" aria-label="History">
+        <button className="icon-button" type="button" onClick={undo} disabled={!historyCounts.undo} title="Undo (Ctrl+Z)" aria-label="Undo"><Undo2 size={16} /></button>
+        <button className="icon-button" type="button" onClick={redo} disabled={!historyCounts.redo} title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><Redo2 size={16} /></button>
+      </div>
+      <span className="toolbar-divider" aria-hidden="true" />
+      <div className="toolbar-group">
+        <Dropdown label="File" title="Import or export this graph" trigger={<><FolderOpen size={15} aria-hidden="true" /> File <ChevronDown size={13} className="caret" aria-hidden="true" /></>}>
+          {close => <>
+            <MenuItem icon={FileUp} label="Import JSON…" hint={`Replaces this tab with a saved ${mode.toUpperCase()} file`} onSelect={() => importInputRef.current?.click()} close={close} />
+            <div className="menu-separator" role="separator" />
+            <MenuItem icon={FileDown} label="Export JSON" hint="Re-importable save of this graph" onSelect={exportJson} close={close} />
+            <MenuItem icon={ImageDown} label="Export SVG" hint="Static picture of the canvas" onSelect={exportSvg} close={close} />
+          </>}
+        </Dropdown>
+        <input ref={importInputRef} type="file" accept="application/json" className="file-input-hidden"
+          onChange={event => { const file = event.target.files?.[0]; if (file) importJson(file); event.target.value = '' }} />
+        <div className="regex-popover-wrap">
+          <Dropdown label={isDfa ? 'DFA tools' : 'NFA tools'} title={isDfa ? 'Complete, minimize or copy this DFA' : 'Convert this NFA or build one from a regex'}
+            trigger={<><Wrench size={15} aria-hidden="true" /> {isDfa ? 'DFA tools' : 'NFA tools'} <ChevronDown size={13} className="caret" aria-hidden="true" /></>}>
+            {close => isDfa ? <>
+              <MenuItem icon={missing.length === 0 ? CircleCheck : CirclePlus} label={missing.length === 0 ? 'Already complete' : 'Complete with sink'}
+                hint={missing.length === 0 ? 'Every state has every character' : `Routes ${missing.length} missing transition${missing.length === 1 ? '' : 's'} to a sink`}
+                disabled={missing.length === 0} onSelect={completeSink} close={close} />
+              <MenuItem icon={Minimize2} label="Minimize" hint={isDfaShaped(graph) ? 'Merge equivalent states, drop unreachable ones' : 'Needs a deterministic graph first'}
+                disabled={!isDfaShaped(graph)} onSelect={minimize} close={close} />
+              <div className="menu-separator" role="separator" />
+              <MenuItem icon={Copy} label="Open as NFA" hint="Copies this DFA into a new NFA tab" onSelect={convert} close={close} />
+            </> : <>
+              <MenuItem icon={ArrowRightLeft} label="Convert to DFA" hint="Subset construction, opens a new DFA tab" onSelect={convert} close={close} />
+              <MenuItem icon={Regex} label="Regex → NFA…" hint="Replaces this graph" onSelect={() => setRegexPopoverOpen(true)} close={close} />
+            </>}
+          </Dropdown>
+          {!isDfa && regexPopoverOpen && <div className="regex-popover" role="dialog" aria-label="Generate an NFA from a regular expression">
+            <form onSubmit={generateFromRegex}>
+              <label htmlFor="regex-input">Regex pattern <span>(replaces this graph)</span></label>
+              <div><input id="regex-input" value={regexInput} placeholder="e.g. a(b|c)*d" autoFocus autoComplete="off" spellCheck={false}
+                aria-invalid={!!regexError} onChange={event => { setRegexInput(event.target.value); setRegexError('') }} />
+              <button type="submit" className="primary-button">Generate</button></div>
+              {regexError && <p role="alert">{regexError}</p>}
+            </form>
+            <small>Supports | * + ? ( ) and \ to escape a character. A blank spot means ε.</small>
+            <button type="button" className="text-button" onClick={() => setRegexPopoverOpen(false)}>Cancel</button>
           </div>}
         </div>
-        <div className="topbar-secondary-right">
-          {isDfa && <>
-            <button className="tool-button" type="button" onClick={completeSink} disabled={missing.length === 0}>{missing.length === 0 ? <><CircleCheck size={14} /> Already complete</> : <><CirclePlus size={14} /> Complete with sink</>}</button>
-            <button className="tool-button" type="button" onClick={minimize} disabled={!isDfaShaped(graph)} title="Merge equivalent states and drop unreachable ones"><Minimize2 size={14} /> Minimize</button>
-          </>}
-        </div>
       </div>
+      <div className="toolbar-spacer" />
+      <div className={`save-status ${saveFailed ? 'is-error' : saveStatus.startsWith('Saved') ? 'is-ok' : ''}`} role="status"
+        title="Only on this browser and device. Clearing browser data removes this graph. Each tab saves separately.">
+        <span className="save-dot" aria-hidden="true" /><span>{saveStatus}</span>
+        {saveFailed && <button type="button" onClick={() => { setStorageBlocked(false); setSaveAttempt(current => current + 1) }}>{storageBlocked ? 'Replace local save' : 'Retry save'}</button>}
+      </div>
+      <button className="primary-button" type="button" aria-controls="string-test-content" aria-expanded={testPanelOpen} onClick={onRunClick}
+        title={isDfa
+          ? 'Checks this is a complete DFA (one start state, no conflicts, no missing transitions). If it is, marks it Validated and jumps to the test input. Does not run a string.'
+          : 'Opens the test panel and focuses the input string. Does not run a string.'}>
+        {isDfa ? <><ListChecks size={15} aria-hidden="true" /> Validate DFA</> : <><TextCursorInput size={15} aria-hidden="true" /> Go to test</>}
+      </button>
     </header>
     {convertError && <p className="convert-error" role="alert">{convertError}</p>}
     {importError && <p className="convert-error" role="alert">{importError}</p>}
     <section className="workspace"><aside ref={sidebarRef} className={`sidebar ${sidebarOpen ? '' : 'is-collapsed'} ${draggingState ? 'is-state-dragging' : ''} ${overDeleteArea ? 'is-delete-target' : ''}`}>
-      <button className="sidebar-toggle" type="button" aria-label={sidebarOpen ? 'Collapse components panel' : 'Expand components panel'} aria-expanded={sidebarOpen}
-        onClick={() => { cancelConnection(); setSidebarOpen(open => !open) }}><span aria-hidden="true">{sidebarOpen ? '‹' : '›'}</span><span className="sidebar-toggle-label">Components</span></button>
-      {draggingState && <div className="sidebar-delete-hint" role="status">{overDeleteArea ? 'Release to delete state and its transitions' : 'Drop a state here to delete'}</div>}<div className="sidebar-heading"><div><p className="eyebrow">{isDfa ? 'DFA' : 'NFA'}</p><h1>{isDfa ? 'Deterministic FA' : 'Nondeterministic FA'}</h1></div></div><p className="sidebar-description">{isDfa ? 'One successor per (state, symbol). No ε. Missing arrows reject the input; optionally complete the graph with a sink.' : 'ε-moves and multiple successors are allowed. Convert to an equivalent DFA when you want the deterministic machine.'}</p><div className="sidebar-section"><div className="section-label"><span>COMPONENTS</span><span className="count">{nodes.length}</span></div><div className="palette-list">
+      <div className="sidebar-head">
+        <button className="sidebar-toggle icon-button" type="button" aria-label={sidebarOpen ? 'Collapse components panel' : 'Expand components panel'} aria-expanded={sidebarOpen}
+          title={sidebarOpen ? 'Collapse' : 'Expand components'} onClick={() => { cancelConnection(); setSidebarOpen(open => !open) }}>{sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}</button>
+        <span className="sidebar-title">Components</span>
+        <span className="count" title="States on the canvas">{nodes.length}</span>
+        <Dropdown className="sidebar-help" label={`${mode.toUpperCase()} rules and editing tips`} role="dialog" triggerClassName="icon-button" title="Rules and editing tips"
+          trigger={<CircleQuestionMark size={16} aria-hidden="true" />}>
+          {() => <div className="help-popover">
+            <h3>{isDfa ? 'Deterministic FA' : 'Nondeterministic FA'}</h3>
+            <p>{isDfa ? 'One successor per (state, symbol). No ε. Missing arrows reject the input; optionally complete the graph with a sink.' : 'ε-moves and multiple successors are allowed. Convert to an equivalent DFA when you want the deterministic machine.'}</p>
+            <ul>
+              <li>Drag a component onto the canvas to add a state.</li>
+              <li>Click a state, then a target (or the same state for a loop) to draw a transition. Click an arrow to pick its characters.</li>
+              <li>Drag a state back onto this panel to delete it and its transitions.</li>
+              <li>Click <b>State</b> or <b>Add category</b> to create a custom state category.</li>
+              <li>Select a start state to toggle whether it also accepts.</li>
+              <li>Ctrl+Z / Ctrl+Shift+Z undo and redo. Esc cancels a connection.</li>
+            </ul>
+          </div>}
+        </Dropdown>
+      </div>
+      {draggingState && <div className="sidebar-delete-hint" role="status">{overDeleteArea ? 'Release to delete state and its transitions' : 'Drop a state here to delete'}</div>}
+      <div className="sidebar-body"><div className="palette-list">
       {categories.map(category => <PaletteItem key={category.id} category={category}
         title={category.id === 'start' ? 'Start state' : category.id === 'accept' ? 'Accept state' : category.id === 'q' ? 'State' : category.name}
         subtitle={category.id === 'q' ? 'Drag q₀ · Click to add a category' : `${indexedLabel(category.name, 0)}, ${indexedLabel(category.name, 1)}, …`}
@@ -1004,56 +1096,70 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
           onChange={event => { setCategoryName(event.target.value); setCategoryError('') }}
           onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setAddingCategory(false) } }} />
         {categoryError && <p id="category-error" role="alert">{categoryError}</p>}
-        <div><button type="submit">Add</button><button type="button" onClick={() => { setAddingCategory(false); setCategoryName(''); setCategoryError('') }}>Cancel</button></div>
+        <div><button type="submit" className="primary-button">Add</button><button type="button" className="secondary-button" onClick={() => { setAddingCategory(false); setCategoryName(''); setCategoryError('') }}>Cancel</button></div>
       </form>}
       </div></div></aside>
       <section className="canvas-area"><div className="canvas-toolbar">
-        <div className="toolbar-label"><span className="live-dot" />CANVAS <span className="slash">/</span> Untitled {isDfa ? 'DFA' : 'NFA'}</div>
         <div className="toolbar-stats">
           <span className="stat-pill">States <b>{nodes.length}</b></span>
-          <span className={`stat-pill ${nodeCounts.start === 1 ? 'is-good' : 'is-bad'}`}>Start <b>{nodeCounts.start}</b></span>
+          <span className={`stat-pill ${nodeCounts.start === 1 ? 'is-good' : 'is-bad'}`} title="Exactly one start state is required">Start <b>{nodeCounts.start}</b></span>
           <span className="stat-pill">Transitions <b>{edges.length}</b></span>
           <span className="stat-pill">Accepting <b>{nodeCounts.accept}</b></span>
-          {isDfa ? <>
-            <span className={`stat-pill ${isStandardDfa ? 'is-good' : 'is-bad'}`}>Deterministic <b>{isStandardDfa ? 'Yes' : 'No'}</b></span>
-            <span className={`stat-pill ${missing.length ? 'is-bad' : 'is-good'}`}>Missing <b>{formatList(missing.map(item => `${item.sourceLabel}, ${item.symbol}`), 'None')}</b></span>
-            {conflicts.length > 0 && <span className="stat-pill is-bad">Conflicts <b>{formatList(conflicts.map(item => `${item.sourceLabel}: ${item.symbol}`), 'None')}</b></span>}
-            <span className={`stat-pill ${testPassed ? 'is-good' : 'is-bad'}`} title="Whether Run has confirmed this is a standard DFA since it last changed — not whether a particular test string was accepted">Validated <b>{testPassed ? 'Yes' : 'No'}</b></span>
-          </> : <>
-            <span className="stat-pill">ε-transitions <b>{epsilonCount}</b></span>
-            <span className="stat-pill">Branching <b>{conflicts.filter(item => item.symbol !== 'ε').length ? 'Yes' : 'No'}</b></span>
-          </>}
+          <Dropdown className="diagnostics" label="Diagnostics" role="dialog" triggerClassName={`stat-pill diagnostic-pill ${diagnosticTone}`}
+            title="Show all diagnostics" trigger={<>{isDfa ? (isStandardDfa ? <CircleCheck size={13} aria-hidden="true" /> : <TriangleAlert size={13} aria-hidden="true" />) : null}<span>{diagnosticSummary}</span><ChevronDown size={12} className="caret" aria-hidden="true" /></>}>
+            {() => <div className="diagnostics-panel">
+              <dl className="diagnostics-facts">
+                {isDfa ? <>
+                  <div><dt>Deterministic</dt><dd className={isStandardDfa ? 'is-good' : 'is-bad'}>{isStandardDfa ? 'Yes' : 'No'}</dd></div>
+                  <div><dt>Start states</dt><dd className={nodeCounts.start === 1 ? 'is-good' : 'is-bad'}>{nodeCounts.start} <small>(exactly 1 needed)</small></dd></div>
+                  <div><dt>Validated</dt><dd className={testPassed ? 'is-good' : ''}>{testPassed ? 'Yes' : 'No'} <small>Validate DFA confirms the current graph</small></dd></div>
+                </> : <>
+                  <div><dt>ε-transitions</dt><dd>{epsilonCount}</dd></div>
+                  <div><dt>Branching</dt><dd>{branching.length ? 'Yes' : 'No'}</dd></div>
+                </>}
+              </dl>
+              {isDfa && <section>
+                <h3>Missing transitions <span className="count">{missing.length}</span></h3>
+                {missing.length ? <ul className="diagnostics-list">{[...missingByState].map(([id, group]) => <li key={id}>
+                  <b>{group.label}</b><span className="diagnostics-symbols">{group.symbols.map(symbol => <code key={symbol}>{symbol}</code>)}</span>
+                </li>)}</ul> : <p className="diagnostics-empty">None</p>}
+                {missing.length > 0 && <p className="diagnostics-tip">Missing characters reject during a test. DFA tools → Complete with sink fills them all.</p>}
+              </section>}
+              <section>
+                <h3>{isDfa ? 'Conflicts' : 'Branching points'} <span className="count">{isDfa ? conflicts.length : branching.length}</span></h3>
+                {(isDfa ? conflicts : branching).length ? <ul className="diagnostics-list">{(isDfa ? conflicts : branching).map(item => <li key={`${item.source}-${item.symbol}`}>
+                  <b>{item.sourceLabel}</b> on <code>{item.symbol}</code> → {item.targets.map(target => target.label).join(', ')}
+                </li>)}</ul> : <p className="diagnostics-empty">None</p>}
+              </section>
+            </div>}
+          </Dropdown>
+          {isDfa && <span className={`stat-pill ${testPassed ? 'is-good' : ''}`} title="Whether Validate DFA has confirmed this is a standard DFA since it last changed — not whether a particular test string was accepted">Validated <b>{testPassed ? 'Yes' : 'No'}</b></span>}
         </div>
         <div className="toolbar-actions">{selectedStart && <button className="tool-button" type="button" onClick={toggleStartAccepting} aria-pressed={!!selectedStart.data.accepting}>◎ <span>{selectedStart.data.accepting ? 'Start accepts' : 'Start rejects ε'}</span></button>}</div>
       </div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }} onMouseMove={onPaneMouseMove}>{reshapeTick > 0 && <div key={reshapeTick} className="reshape-flash" aria-hidden="true" />}{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} color={sourceColor(connectingNode)} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, data: { ...node.data, related: node.id === focusedEdge?.source || node.id === focusedEdge?.target, onRename: () => renameNode(node.id), onDelete: () => deleteNode(node.id), animating: activeFrame && node.id === activeFrame.stateId ? activeKind ?? undefined : undefined, animatingTick: animation?.tick }, selected: node.id === selectedId || node.id === connectingId, draggable: true }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeClick={onEdgeClick} onEdgeMouseEnter={onEdgeMouseEnter} onEdgeMouseLeave={onEdgeMouseLeave} onNodeClick={onNodeClick} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop} autoPanOnNodeDrag={false} nodeDragThreshold={5} nodeClickDistance={5} onNodesDelete={onNodesDelete} deleteKeyCode={['Backspace', 'Delete']} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={{ padding: 0.35, maxZoom: 1 }} minZoom={0.35} maxZoom={2}><Background color="#303039" gap={24} size={1} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => isAcceptingNode(node.data as AutomataNodeData) ? '#a78bfa' : node.data.kind === 'start' ? '#67e8f9' : '#71717a'} maskColor="rgba(17,17,22,.75)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target (or source for a loop) · Drag to move · Esc to cancel</div> : nodes.length === 0 ? <div className="canvas-empty-hint">Drag a state in from the sidebar to get started</div> : <div className="canvas-hint">Click a state to connect · Drag a state to move</div>}
-        <div className="save-status-badge" role="status" title="Only on this browser and device. Clearing browser data removes this graph. Each tab saves separately.">
-          <span>{saveStatus}</span>
-          {(storageBlocked || saveStatus.startsWith('Could not')) && <button type="button" onClick={() => { setStorageBlocked(false); setSaveAttempt(current => current + 1) }}>{storageBlocked ? 'Replace local save' : 'Retry save'}</button>}
-        </div>
       </div>
-        <section className="string-test-panel" aria-label="String test" onKeyDown={event => event.stopPropagation()}>
+        <section className="string-test-panel" aria-label="Alphabet and string test" onKeyDown={event => event.stopPropagation()}>
           <button className="string-test-toggle" type="button" aria-expanded={testPanelOpen} aria-controls="string-test-content"
             onClick={() => { cancelConnection(); setTestPanelOpen(open => !open) }}>
-            <span>Test string{testResult && <span className={`test-result-badge is-${testResult.status}`}>{testResult.status === 'accepted' ? 'Accepted' : testResult.status === 'rejected' ? 'Rejected' : 'Cannot run'}</span>}</span><span className="string-test-summary">{testPanelOpen ? 'Collapse' : 'Expand'} <span aria-hidden="true">{testPanelOpen ? <ChevronDown size={13} /> : <ChevronUp size={13} />}</span></span>
+            <span className="panel-bar-title">Alphabet &amp; test{testResult && <span className={`test-result-badge is-${testResult.status}`}>{testResult.status === 'accepted' ? 'Accepted' : testResult.status === 'rejected' ? 'Rejected' : 'Cannot run'}</span>}</span>
+            <span className="string-test-summary">{testPanelOpen ? 'Collapse' : 'Expand'} <span aria-hidden="true">{testPanelOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}</span></span>
           </button>
           <div id="string-test-content" className="string-test-content" hidden={!testPanelOpen}>
-            <div className="alphabet-editor">
-              <div className="alphabet-editor-head">
-                <span className="alphabet-editor-label">Alphabet in use</span>
-                {isDfa && <ul className="alphabet-legend">
-                  <li><span className="legend-dot is-full" aria-hidden="true" />Fully used</li>
-                  <li><span className="legend-dot is-partial" aria-hidden="true" />Partially used</li>
-                  <li><span className="legend-dot is-unused" aria-hidden="true" />Never used</li>
-                </ul>}
+            <section className={`panel-region alphabet-editor ${alphabetOpen ? 'is-open' : ''}`} aria-labelledby="alphabet-heading">
+              <div className="region-head">
+                <h2 id="alphabet-heading">Alphabet</h2><span className="count" title="Declared characters">{symbols.length}</span>
+                <button type="button" className="text-button region-toggle" aria-expanded={alphabetOpen} aria-controls="alphabet-manage"
+                  onClick={() => setAlphabetOpen(open => !open)}>{alphabetOpen ? <>Done <ChevronUp size={14} aria-hidden="true" /></> : <>Manage <ChevronDown size={14} aria-hidden="true" /></>}</button>
               </div>
-              <div className="alphabet-editor-row">
-                <ul className="alphabet-chip-list">
-                  {symbols.map(symbol => <li key={symbol} className={`alphabet-chip ${isDfa ? `is-${symbolUsage.get(symbol)}` : ''}`}>
-                    <span>{symbol}</span>
-                    <button type="button" className="alphabet-chip-remove" aria-label={`Remove character ${symbol}`} title="Remove this character" onClick={() => confirmRemoveSymbol(symbol)}><X size={9} /></button>
-                  </li>)}
-                  {symbols.length === 0 && <li className="alphabet-chip-empty">No characters yet — draw a transition or add one below</li>}
-                </ul>
+              <ul className="alphabet-chip-list">
+                {symbols.map(symbol => <li key={symbol} className={`alphabet-chip ${isDfa ? `is-${symbolUsage.get(symbol)}` : ''}`}
+                  title={isDfa ? { full: 'Used by every state', partial: 'Used by some states', unused: 'Not used by any state' }[symbolUsage.get(symbol) ?? 'unused'] : undefined}>
+                  <span>{symbol}</span>
+                  {alphabetOpen && <button type="button" className="alphabet-chip-remove" aria-label={`Remove character ${symbol}`} title="Remove this character" onClick={() => confirmRemoveSymbol(symbol)}><X size={10} /></button>}
+                </li>)}
+                {symbols.length === 0 && <li className="alphabet-chip-empty">No characters yet — draw a transition or add one</li>}
+              </ul>
+              {alphabetOpen && <div id="alphabet-manage" className="alphabet-manage">
                 <form className="alphabet-add-form" onSubmit={event => {
                   event.preventDefault()
                   const message = addSymbol(newSymbolDraft.trim().normalize('NFC'))
@@ -1062,28 +1168,40 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
                 }}>
                   <label htmlFor="new-alphabet-symbol">Add a character</label>
                   <input id="new-alphabet-symbol" value={newSymbolDraft} onChange={event => setNewSymbolDraft(event.target.value)} placeholder="e.g. c" autoComplete="off" spellCheck={false} />
-                  <button type="submit">Add</button>
+                  <button type="submit" className="secondary-button">Add</button>
                 </form>
+                {isDfa && <ul className="alphabet-legend">
+                  <li><span className="legend-dot is-full" aria-hidden="true" />Every state</li>
+                  <li><span className="legend-dot is-partial" aria-hidden="true" />Some states</li>
+                  <li><span className="legend-dot is-unused" aria-hidden="true" />Unused</li>
+                </ul>}
+              </div>}
+            </section>
+            <section className="panel-region test-region" aria-labelledby="test-heading">
+              <div className="region-head"><h2 id="test-heading">Test &amp; generate</h2></div>
+              <div className="string-test-row">
+                <label htmlFor="test-string">Input</label>
+                <div className="test-input-wrap">
+                  <input ref={testInputRef} id="test-string" value={testString} onChange={event => setTestString(event.target.value)}
+                    onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); onRunTestClick() } }} placeholder="e.g. abba" autoComplete="off" spellCheck={false} aria-describedby="string-test-help string-test-status" />
+                  <span id="string-test-help" className="string-test-count">{testString.length === 0 ? 'ε' : `${Array.from(testString).length} chars`}</span>
+                </div>
+                <button className="icon-button is-bordered" type="button" onClick={onRandomString} disabled={!activeAlphabet.length} aria-label="Fill in a random string" title="Fill in a random string (3-10 characters) from the alphabet in use"><Dices size={16} /></button>
+                <div className="run-group" role="group" aria-label="Run this string">
+                  <button className="string-test-run" type="button" onClick={onRunTestClick} aria-describedby="string-test-status" title="Walks the string through the graph step by step (Enter)"><Play size={14} aria-hidden="true" /> Run animated</button>
+                  <button className="string-test-instant" type="button" onClick={onRunTestInstantClick} aria-describedby="string-test-status" title="Same check, but skips the animated walk and shows the result right away — useful when an NFA has a lot of branches to try"><Zap size={14} aria-hidden="true" /> Run instantly</button>
+                </div>
               </div>
-            </div>
-            <div className="string-test-row">
-              <label htmlFor="test-string">Input string</label>
-              <input ref={testInputRef} id="test-string" value={testString} onChange={event => setTestString(event.target.value)}
-                onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); onRunTestClick() } }} placeholder="e.g. abba" autoComplete="off" spellCheck={false} aria-describedby="string-test-help string-test-status" />
-              <span id="string-test-help" className="string-test-count">{testString.length === 0 ? 'ε' : `${Array.from(testString).length} chars`}</span>
-              <button className="string-test-random" type="button" onClick={onRandomString} disabled={!activeAlphabet.length} title="Fill in a random string (3-10 characters) from the alphabet in use"><Dices size={15} /></button>
-              <button className="string-test-run" type="button" onClick={onRunTestClick} aria-describedby="string-test-status">Run test</button>
-              <button className="string-test-instant" type="button" onClick={onRunTestInstantClick} aria-describedby="string-test-status" title="Same check, but skips the animated walk and shows the result right away — useful when an NFA has a lot of branches to try"><Zap size={13} /> Instant</button>
-            </div>
-            <div id="string-test-status" role="status" className={`string-test-footer ${testResult ? `test-result is-${testResult.status}` : ''}`}>{testResult ? <><strong>{testResult.status === 'accepted' ? 'Accepted' : testResult.status === 'rejected' ? 'Rejected' : 'Cannot run'}</strong> · {testResult.message}</> : 'Run a test or press Enter. Leave blank to test ε.'}</div>
-            <div className="accepted-examples">
-              <button className="tool-button" type="button" onClick={generateExamples}>Generate 5 accepted strings</button>
-              {examples && (examples.length
-                ? <ul className="accepted-examples-list">{examples.map((example, index) => <li key={index}>
-                    <button type="button" onClick={() => { setTestString(example); testInputRef.current?.focus() }}>{example.length ? example : 'ε'}</button>
-                  </li>)}</ul>
-                : <span className="accepted-examples-empty">No accepted string found within a reasonable length.</span>)}
-            </div>
+              <div id="string-test-status" role="status" className={`string-test-footer ${testResult ? `test-result is-${testResult.status}` : ''}`}>{testResult ? <><strong>{testResult.status === 'accepted' ? 'Accepted' : testResult.status === 'rejected' ? 'Rejected' : 'Cannot run'}</strong> · {testResult.message}</> : testHint}</div>
+              <div className="accepted-examples">
+                <button className="secondary-button" type="button" onClick={generateExamples}><Sparkles size={14} aria-hidden="true" /> Generate 5 accepted strings</button>
+                {examples && (examples.length
+                  ? <ul className="accepted-examples-list" aria-label="Accepted strings — click one to use it">{examples.map((example, index) => <li key={index}>
+                      <button type="button" title="Use as input" onClick={() => { setTestString(example); testInputRef.current?.focus() }}>{example.length ? example : 'ε'}</button>
+                    </li>)}</ul>
+                  : <span className="accepted-examples-empty">No accepted string found within a reasonable length.</span>)}
+              </div>
+            </section>
           </div>
         </section>
       </section>

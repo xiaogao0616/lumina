@@ -1,10 +1,11 @@
 import Link from 'next/link'
+import { Zap } from 'lucide-react'
 
 export default function HomePage() {
   return (
     <main className="lab-home">
       <header className="lab-home-brand">
-        <span className="brand-mark">⌁</span>
+        <span className="brand-mark" aria-hidden="true"><Zap size={14} /></span>
         <div>
           <p className="eyebrow">Automata Lab</p>
           <h1>One workspace, two rulebooks</h1>
