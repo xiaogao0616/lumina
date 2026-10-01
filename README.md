@@ -1,45 +1,155 @@
-# Automata Lab
+<div align="center">
 
-A visual editor for building finite automata and testing strings against them, built with
-[Next.js](https://nextjs.org) and [React Flow](https://reactflow.dev).
+# ⚡ Automata Lab
 
-`/dfa` and `/nfa` both open the same workspace: a browser-tab-style strip that can hold any mix of DFA
-and NFA tabs, each with its own independent, separately-saved graph. The NFA lab can convert to an
-equivalent DFA by subset construction; the DFA lab can copy itself into the NFA lab — either way,
-converting always opens the result as a new tab in the same workspace rather than overwriting anything.
+**Draw finite automata. Watch strings walk through them. Convert, minimize, repeat.**
 
-Live: https://xiaogao0616.github.io/lumina/
+A visual DFA / NFA workbench that runs entirely in your browser.
 
-## Getting started
+[![Live demo](https://img.shields.io/badge/▶_Live_demo-xiaogao0616.github.io%2Flumina-8b5cf6?style=for-the-badge)](https://xiaogao0616.github.io/lumina/)
+
+![Next.js](https://img.shields.io/badge/Next.js_16-000?logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React_19-20232a?logo=react&logoColor=61dafb)
+![React Flow](https://img.shields.io/badge/React_Flow-ff0072?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-63_passing-34d399)
+![No backend](https://img.shields.io/badge/backend-none-67e8f9)
+
+<img src="docs/screenshot-nfa.jpg" alt="Automata Lab: an NFA with ε-moves and branching, with generated accepted strings" width="100%">
+
+</div>
+
+---
+
+## What is it?
+
+Think of a whiteboard for **automata theory**. You drag states onto a canvas, click to connect them, and label the arrows with characters. Then type a string and **watch it move through the machine** step by step until it is accepted or rejected.
+
+It's built for students learning formal languages, TAs who need a quick example, and anyone who wants to check a homework DFA before handing it in.
+
+## ✨ Features
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🎨 Build
+- Drag-and-drop **start / normal / accept** states
+- Click a state, then a target, to draw a transition; **multi-select characters** on one arrow
+- Custom state categories (`r₀, r₁, …`)
+- A start state can also accept
+- Drag a state back onto the panel to delete it
+- Undo / redo (`Ctrl+Z` / `Ctrl+Shift+Z`)
+
+</td>
+<td width="50%" valign="top">
+
+### ▶️ Test
+- **Run animated**: the string walks state by state, and NFA branches are tried one at a time
+- **Run instantly**: shows the verdict without the walk
+- 🎲 Fill in a random string from the alphabet in use
+- ✨ **Generate accepted strings**, shortest first
+- Live diagnostics: missing transitions, conflicts, ε-moves, branching
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 🔁 Transform
+- **NFA → DFA** by subset construction
+- **DFA → NFA** copy
+- **Minimize** a DFA (Moore partition refinement)
+- **Complete with sink**: fills every missing transition
+- **Regex → NFA** with Thompson's construction (`| * + ? ( )`, `\` escapes)
+
+</td>
+<td valign="top">
+
+### 💾 Keep
+- Browser-style **tabs**: mix as many DFAs and NFAs as you like
+- Conversions always open a **new tab** and never overwrite your work
+- Every tab is saved automatically in your browser
+- Import / export **JSON**
+- Export a clean **SVG** for slides and homework
+
+</td>
+</tr>
+</table>
+
+## 🧭 How the pieces fit
+
+```mermaid
+flowchart LR
+    R["Regex<br/>a(b|c)*d"] -- Thompson --> N["NFA<br/>ε-moves, branching"]
+    N -- subset construction --> D["DFA"]
+    D -- copy --> N
+    D -- complete with sink --> C["Complete DFA"]
+    C -- minimize --> M["Minimal DFA"]
+    N & D & C & M -. run a string .-> T{{"Accepted / Rejected"}}
+```
+
+<div align="center">
+<img src="docs/screenshot-dfa-diagnostics.jpg" alt="DFA diagnostics panel listing missing transitions per state" width="100%">
+<br><sub>Diagnostics show exactly which (state, character) pairs are still missing, so you know what's left before the DFA is complete.</sub>
+</div>
+
+## 🚀 Try it
+
+**In the browser:** open the [live demo](https://xiaogao0616.github.io/lumina/). There's nothing to install.
+
+**Locally:**
 
 ```bash
+git clone https://github.com/xiaogao0616/lumina.git
+cd lumina
 npm install
-npm run dev
+npm run dev        # → http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+<details>
+<summary><b>A 30-second walkthrough</b></summary>
 
-## Scripts
+1. Open **NFA** and pick **NFA tools → Regex → NFA…**
+2. Type `a(b|c)*d` and press **Generate**.
+3. Enter `abcbd` in the input and press **Run animated**. Watch it reach the accept state.
+4. **NFA tools → Convert to DFA** opens the deterministic version in a new tab.
+5. In that tab, use **DFA tools → Minimize** to see how small the machine can get.
 
-| Script | Purpose |
+</details>
+
+## 🧠 Under the hood
+
+All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate from the UI:
+
+| Module | What it does |
 | --- | --- |
-| `npm run dev` | Development server |
-| `npm run build` | Static export into `out/` |
-| `npm run typecheck` | Generate Next.js route types, then `tsc --noEmit` |
-| `npm test` | Simulator, DFA rules, conversion, and storage tests (`node --test`) |
-
-## Deployment
-
-Every push to `main` is built and published to GitHub Pages by
-[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
-
-The site is served from the `/lumina` subpath, so the workflow passes the path reported by
-`actions/configure-pages` to the build as `NEXT_PUBLIC_BASE_PATH`, which `next.config.mjs`
-uses as `basePath`. The variable is empty during local development, so the app still runs at
-the root of `localhost:3000`.
-
-To build a subpath-hosted export locally:
+| `automata-simulator.ts` | Decides accept / reject, following ε-closures |
+| `nfa-to-dfa.ts` | Subset construction; missing moves go to an ∅ sink |
+| `dfa-minimize.ts` | Moore / table-filling minimization of reachable states |
+| `regex-to-nfa.ts` | Thompson construction for a small regex dialect |
+| `automata-dfa.ts` | DFA rules: conflicts, missing transitions, sink completion |
+| `path-animation.ts` | Enumerates the walk(s) a string takes, for the animation |
+| `accepted-strings.ts` | Shortest-first search for accepted examples |
+| `graph-svg.ts` | Standalone SVG export using the same edge routing as the canvas |
+| `editor-storage.ts` | Versioned, validated local saves and tab index |
 
 ```bash
-NEXT_PUBLIC_BASE_PATH=/lumina npm run build
+npm test           # 63 tests, node --test
+npm run typecheck  # route types + tsc --noEmit
+npm run build      # static export into out/
 ```
+
+## 📦 Deployment
+
+Every push to `main` is built as a static export and published to GitHub Pages by [`deploy.yml`](.github/workflows/deploy.yml). The site lives under `/lumina`, so the workflow passes that path to the build as `NEXT_PUBLIC_BASE_PATH`. Locally the variable is empty and the app runs at `/`.
+
+```bash
+NEXT_PUBLIC_BASE_PATH=/lumina npm run build   # reproduce the Pages build locally
+```
+
+---
+
+<div align="center">
+<sub>Built with Next.js and React Flow · Your graphs never leave your browser</sub>
+</div>
