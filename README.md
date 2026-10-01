@@ -3,6 +3,11 @@
 A visual editor for building finite automata and testing strings against them, built with
 [Next.js](https://nextjs.org) and [React Flow](https://reactflow.dev).
 
+`/dfa` and `/nfa` both open the same workspace: a browser-tab-style strip that can hold any mix of DFA
+and NFA tabs, each with its own independent, separately-saved graph. The NFA lab can convert to an
+equivalent DFA by subset construction; the DFA lab can copy itself into the NFA lab — either way,
+converting always opens the result as a new tab in the same workspace rather than overwriting anything.
+
 Live: https://xiaogao0616.github.io/lumina/
 
 ## Getting started
@@ -21,7 +26,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run dev` | Development server |
 | `npm run build` | Static export into `out/` |
 | `npm run typecheck` | Generate Next.js route types, then `tsc --noEmit` |
-| `npm test` | Simulator unit tests (`node --test`) |
+| `npm test` | Simulator, DFA rules, conversion, and storage tests (`node --test`) |
 
 ## Deployment
 
