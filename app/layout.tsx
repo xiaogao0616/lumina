@@ -1,12 +1,16 @@
 import type { Metadata, Viewport } from 'next'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
+
+const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' })
+const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' })
 
 // Next.js applies basePath to <Link>/next/image but not to URLs written into metadata.
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 
 export const metadata: Metadata = {
-  title: 'Automata Lab — Finite Automaton Builder',
-  description: 'Design and test deterministic finite automata in a focused visual editor.',
+  title: 'Automata Lab — DFA and NFA',
+  description: 'Separate visual labs for deterministic and nondeterministic finite automata, with NFA-to-DFA conversion.',
   icons: {
     icon: [
       {
@@ -41,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className={`antialiased ${sans.variable} ${mono.variable}`}>{children}</body>
     </html>
   )
 }
