@@ -271,11 +271,15 @@ export async function callModel(settings: AiSettings, system: string, prompt: st
   }
   const content: unknown[] = [{ type: 'text', text: prompt }]
   if (image) content.push({ type: 'image_url', image_url: { url: `data:${image.mediaType};base64,${image.base64}` } })
-  const response = await fetch(`${base}/chat/completions`, {
+  const request = (extra: Record<string, unknown>) => fetch(`${base}/chat/completions`, {
     method: 'POST', signal,
     headers: { 'content-type': 'application/json', authorization: `Bearer ${settings.apiKey}` },
-    body: JSON.stringify({ model: settings.model, messages: [{ role: 'system', content: system }, { role: 'user', content }] }),
+    body: JSON.stringify({ model: settings.model, messages: [{ role: 'system', content: system }, { role: 'user', content }], ...extra }),
   })
+  // Gemini thinks at length by default, which makes a photo take tens of seconds; reading a
+  // diagram needs little of it. Models that reject the setting get the plain request instead.
+  let response = await request(settings.provider === 'gemini' ? { reasoning_effort: 'low' } : {})
+  if (response.status === 400 && settings.provider === 'gemini') response = await request({})
   if (!response.ok) throw await failure(response)
   const body = await response.json() as { choices?: { message?: { content?: string } }[] }
   return body.choices?.[0]?.message?.content ?? ''

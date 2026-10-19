@@ -25,7 +25,7 @@ export type OpenAiResult = (mode: TabMode, result: { graph?: AutomatonGraph; gra
 /** Shrink a photo before sending it: phone pictures are far larger than a model needs to read a diagram. */
 async function readImage(file: File): Promise<{ image: AiImage; preview: string }> {
   const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, 1568 / Math.max(bitmap.width, bitmap.height))
+  const scale = Math.min(1, 1280 / Math.max(bitmap.width, bitmap.height))
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(bitmap.width * scale)
   canvas.height = Math.round(bitmap.height * scale)
@@ -44,6 +44,14 @@ function AiBuilderDialog({ defaultTarget, onResult, onClose }: { defaultTarget: 
   })
   const [settingsOpen, setSettingsOpen] = useState(!settings.apiKey)
   const [busy, setBusy] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    if (!busy) return
+    setElapsed(0)
+    const started = Date.now()
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000)
+    return () => clearInterval(timer)
+  }, [busy])
   const [error, setError] = useState('')
   const abortRef = useRef<AbortController | null>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -143,7 +151,7 @@ function AiBuilderDialog({ defaultTarget, onResult, onClose }: { defaultTarget: 
       <div className="modal-actions">
         <button type="button" className="modal-button" onClick={() => busy ? abortRef.current?.abort() : onClose()}>Cancel</button>
         <button type="button" className="modal-button is-primary" disabled={!canRun} onClick={() => void run()}>
-          {busy ? 'Working…' : source === 'text' ? 'Generate' : 'Recognize'}
+          {busy ? `Working… ${elapsed}s` : source === 'text' ? 'Generate' : 'Recognize'}
         </button>
       </div>
     </div>
