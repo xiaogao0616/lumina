@@ -73,3 +73,9 @@ test('branching finds rules that can both apply', () => {
   const deterministic = graphOf(states, [t('x', 's', 'f', 'a,X→ε', 'b,X→ε', 'a,Y→ε')], ['a', 'b'])
   assert.deepEqual(pdaBranching(deterministic), [])
 })
+
+test('accepted strings include every word, not one per configuration', () => {
+  // Even palindromes over {a, b}: length 2 has aa and bb, length 4 has four.
+  const pal = [t('e1', 's', 'p', 'ε,ε→$'), t('e2', 'p', 'p', 'a,ε→a', 'b,ε→b'), t('e3', 'p', 'q', 'ε,ε→ε'), t('e4', 'q', 'q', 'a,a→ε', 'b,b→ε'), t('e5', 'q', 'f', 'ε,$→ε')]
+  assert.deepEqual(findPdaAcceptedStrings(graphOf(states, pal, ['a', 'b']), 7), ['', 'aa', 'bb', 'aaaa', 'abba', 'baab', 'bbbb'])
+})

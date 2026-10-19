@@ -376,6 +376,7 @@ button, input { font: inherit; }
 .accepted-examples-list button { height: 26px; padding: 0 9px; border: 1px solid #40394d; border-radius: var(--radius-pill); background: #211f29; color: #ddd6fe; font: var(--fs-small) var(--font-mono), monospace; cursor: pointer; }
 .accepted-examples-list button:hover { border-color: #6d5a94; background: #2a2635; }
 .accepted-examples-empty { color: var(--muted); font-size: var(--fs-small); }
+.accepted-examples-range { color: var(--muted); font-size: var(--fs-small); white-space: nowrap; }
 
 /* ==========================================================================
    11. Dialogs

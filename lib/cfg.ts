@@ -221,37 +221,66 @@ export function leftmostDerivation(tree: ParseTree, maxSteps = 400): string[] {
 }
 
 /**
- * Up to `count` distinct strings the grammar generates, shortest first. Sentential forms are
- * expanded leftmost-first in order of the shortest string they could still become, so a form
- * that is all terminals comes out exactly when no shorter string remains to be found.
+ * The same language minus ε, with no ε-rules: each rule is copied once for every way of dropping
+ * nullable symbols from its right side, and empty right sides are left out. Every nonterminal then
+ * derives at least one character, so a sentential form never has more symbols than the string it
+ * becomes, which keeps the search in generateStrings finite at each length.
+ */
+function withoutEpsilonRules(grammar: Grammar): Grammar {
+  const nullable = new Set(analyzeGrammar(grammar).nullable)
+  const productions: Production[] = []
+  const seen = new Set<string>()
+  for (const production of grammar.productions) {
+    let bodies: string[][] = [[]]
+    for (const symbol of production.body) {
+      bodies = bodies.flatMap(body => nullable.has(symbol) ? [body, [...body, symbol]] : [[...body, symbol]])
+      if (bodies.length > 1024) break // a pathological right side; the copies already made still help
+    }
+    for (const body of bodies) {
+      const key = `${production.head}→${body.join('\u0001')}`
+      if (!body.length || seen.has(key)) continue
+      seen.add(key)
+      productions.push({ head: production.head, body })
+    }
+  }
+  return { ...grammar, productions }
+}
+
+/**
+ * Up to `count` distinct strings the grammar generates, shortest first and alphabetical within a
+ * length. Sentential forms are expanded leftmost-first in order of the shortest string they could
+ * still become, so all strings of one length are found before any longer one.
  */
 export function generateStrings(grammar: Grammar, count: number, maxLength = 20): string[] {
-  const lengths = minimumLengths(grammar)
+  const results: string[] = analyzeGrammar(grammar).nullable.includes(grammar.start) ? [''] : []
+  const reduced = withoutEpsilonRules(grammar)
+  const lengths = minimumLengths(reduced)
   const bound = (form: string[]) => form.reduce((sum, symbol) => sum + (isNonterminal(symbol) ? lengths.get(symbol) ?? Infinity : 1), 0)
-  const maxSymbols = 2 * maxLength + 12
   const buckets: string[][][] = Array.from({ length: maxLength + 1 }, () => [])
   const seen = new Set<string>()
   const push = (form: string[]) => {
     const value = bound(form)
-    if (value > maxLength || form.length > maxSymbols) return
+    if (value > maxLength) return
     const key = form.join('\u0001')
     if (seen.has(key)) return
     seen.add(key)
     buckets[value].push(form)
   }
-  push([grammar.start])
-  const results: string[] = []
-  let budget = 60000
-  for (let length = 0; length <= maxLength && results.length < count; length++) {
+  push([reduced.start])
+  let budget = 200000
+  for (let length = 1; length <= maxLength && results.length < count && budget > 0; length++) {
     const bucket = buckets[length]
-    for (let index = 0; index < bucket.length && results.length < count && budget-- > 0; index++) {
+    // An ambiguous grammar reaches the same string through different forms; list it once.
+    const words = new Set<string>()
+    for (let index = 0; index < bucket.length && budget-- > 0; index++) {
       const form = bucket[index]
       const at = form.findIndex(isNonterminal)
-      if (at === -1) { results.push(form.join('')); continue }
-      for (const production of grammar.productions) {
+      if (at === -1) { words.add(form.join('')); continue }
+      for (const production of reduced.productions) {
         if (production.head === form[at]) push([...form.slice(0, at), ...production.body, ...form.slice(at + 1)])
       }
     }
+    results.push(...[...words].sort().slice(0, count - results.length))
   }
   return results
 }

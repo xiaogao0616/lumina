@@ -158,10 +158,10 @@ export function runPda(states: PdaState[], transitions: PdaTransition[], input: 
 }
 
 /**
- * Shortest-first accepted strings. Works length by length: within one length it follows ε-moves,
- * then reads one more character into the next length. Each (state, stack) pair keeps only the first
- * string that reached it at a given length, which keeps the frontier finite; a different string can
- * still show up at a later length through a loop, the same trade-off the DFA example search makes.
+ * Distinct accepted strings, shortest first. Works length by length: within one length it follows
+ * ε-moves, then reads one more character into the next length. Configurations are told apart by
+ * the word read so far too, so every accepted word within the limits is found; the per-length cap
+ * only matters for machines whose number of live configurations explodes.
  */
 export function findPdaAcceptedStrings(graph: AutomatonGraph, count: number, maxLength = 12): string[] {
   const states = graph.states.map(state => ({ id: state.id, label: state.label, start: state.kind === 'start', accepting: isAcceptingState(state) }))
@@ -169,32 +169,32 @@ export function findPdaAcceptedStrings(graph: AutomatonGraph, count: number, max
   if ('error' in prepared) return []
   const accepting = new Map(states.map(state => [state.id, state.accepting]))
   const maxStack = 24 + 2 * maxLength
-  const maxPerLayer = 4000
+  const maxPerLayer = 20000
   const results: string[] = []
   const found = new Set<string>()
   type Config = { stateId: string; stack: string; word: string }
+  const keyOf = (config: Config) => `${config.stateId}|${config.stack}|${config.word}`
   let layer: Config[] = [{ stateId: prepared.start.id, stack: '', word: '' }]
   for (let length = 0; length <= maxLength && layer.length && results.length < count; length++) {
     // ε-closure within this length.
-    const seen = new Set(layer.map(config => `${config.stateId}|${config.stack}`))
+    const seen = new Set(layer.map(keyOf))
     for (let head = 0; head < layer.length && layer.length < maxPerLayer; head++) {
       const config = layer[head]
       for (const move of prepared.outgoing.get(config.stateId) ?? []) {
         if (move.rule.input) continue
         const stack = applyMove(config.stack, move.rule)
         if (stack === null || Array.from(stack).length > maxStack) continue
-        const key = `${move.target}|${stack}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        layer.push({ stateId: move.target, stack, word: config.word })
+        const next = { stateId: move.target, stack, word: config.word }
+        if (seen.has(keyOf(next))) continue
+        seen.add(keyOf(next))
+        layer.push(next)
       }
     }
-    for (const config of layer) {
-      if (accepting.get(config.stateId) && !found.has(config.word)) {
-        found.add(config.word)
-        results.push(config.word)
-        if (results.length >= count) break
-      }
+    // Shortlex within a length, matching the DFA and CFG lists.
+    const accepted = [...new Set(layer.filter(config => accepting.get(config.stateId)).map(config => config.word))].sort()
+    for (const word of accepted) {
+      if (results.length >= count) break
+      if (!found.has(word)) { found.add(word); results.push(word) }
     }
     const next: Config[] = []
     const nextSeen = new Set<string>()
@@ -203,10 +203,10 @@ export function findPdaAcceptedStrings(graph: AutomatonGraph, count: number, max
         if (!move.rule.input) continue
         const stack = applyMove(config.stack, move.rule)
         if (stack === null || Array.from(stack).length > maxStack) continue
-        const key = `${move.target}|${stack}`
-        if (nextSeen.has(key) || next.length >= maxPerLayer) continue
-        nextSeen.add(key)
-        next.push({ stateId: move.target, stack, word: config.word + move.rule.input })
+        const candidate = { stateId: move.target, stack, word: config.word + move.rule.input }
+        if (nextSeen.has(keyOf(candidate)) || next.length >= maxPerLayer) continue
+        nextSeen.add(keyOf(candidate))
+        next.push(candidate)
       }
     }
     layer = next

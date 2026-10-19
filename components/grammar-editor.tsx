@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowRightLeft, BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CircleQuestionMark, Dices, FileDown, FileUp, FolderOpen,
-  Play, Sparkles, TextCursorInput, TriangleAlert, Wrench, Zap,
+  Play, TextCursorInput, TriangleAlert, Wrench, Zap,
 } from 'lucide-react'
 import { SOURCE_COLORS } from '../lib/automaton-graph'
 import {
@@ -12,12 +12,14 @@ import {
   type MembershipResult, type ParseTree,
 } from '../lib/cfg'
 import { readSavedGrammar, type SavedGrammar } from '../lib/editor-storage'
-import { randomTestString } from '../lib/accepted-strings'
+import { EXAMPLE_POOL_SIZE, randomTestString } from '../lib/accepted-strings'
 import { Dropdown, MenuItem } from './menus'
+import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 import type { OpenTab } from './automata-editor'
 
 const DEFAULT_GRAMMAR = 'S → aSb | ε'
 const DERIVE_STEP_MS = 520
+const EXAMPLE_LENGTH = 20
 
 const grammarExamples = [
   { name: 'aⁿbⁿ', grammar: 'S → aSb | ε' },
@@ -178,9 +180,11 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
     setAnimating(animate && result.status === 'accepted')
   }
 
-  const [examples, setExamples] = useState<string[] | null>(null)
+  const [examples, setExamples] = useState<ExampleBatch | null>(null)
   useEffect(() => { setExamples(null) }, [grammarText])
-  const generateExamples = () => { if (grammar) setExamples(generateStrings(grammar, 5)) }
+  const generateExamples = () => {
+    if (grammar) setExamples(nextExampleBatch(examples, () => ({ pool: generateStrings(grammar, EXAMPLE_POOL_SIZE, EXAMPLE_LENGTH), page: 0, maxLength: EXAMPLE_LENGTH })))
+  }
   const convertToPda = () => {
     if (!grammar) return
     onConvert('pda', cfgToPda(grammar), { testString }, `PDA from ${tabTitle}`)
@@ -371,14 +375,8 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
               <div id="cfg-test-status" role="status" className={`string-test-footer ${testResult ? `test-result is-${testResult.status}` : ''}`}>
                 {testResult ? <><strong>{resultLabel(testResult.status)}</strong> · {testResult.message}</> : testHint}
               </div>
-              <div className="accepted-examples">
-                <button className="secondary-button" type="button" onClick={generateExamples} disabled={!grammar}><Sparkles size={14} aria-hidden="true" /> Generate 5 strings</button>
-                {examples && (examples.length
-                  ? <ul className="accepted-examples-list" aria-label="Strings in the language — click one to use it">{examples.map((example, index) => <li key={index}>
-                      <button type="button" title="Use as input" onClick={() => { setTestString(example); testInputRef.current?.focus() }}>{example.length ? example : 'ε'}</button>
-                    </li>)}</ul>
-                  : <span className="accepted-examples-empty">This grammar derives no string within a reasonable length.</span>)}
-              </div>
+              <ExampleStrings batch={examples} noun="strings" emptyText="This grammar derives no string within a reasonable length." disabled={!grammar}
+                onGenerate={generateExamples} onUse={example => { setTestString(example); testInputRef.current?.focus() }} />
             </section>
           </div>
         </section>
