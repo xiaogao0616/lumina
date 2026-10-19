@@ -6,13 +6,15 @@ import {
   ArrowRightLeft, BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CircleQuestionMark, Dices, FileDown, FileUp, FolderOpen,
   Play, TextCursorInput, TriangleAlert, Wrench, Zap,
 } from 'lucide-react'
-import { SOURCE_COLORS } from '../lib/automaton-graph'
+import { SOURCE_COLORS, inkColor } from '../lib/automaton-graph'
 import {
   analyzeGrammar, cfgToPda, formatProduction, generateStrings, isNonterminal, parseGrammar, testMembership,
   type MembershipResult, type ParseTree,
 } from '../lib/cfg'
 import { readSavedGrammar, type SavedGrammar } from '../lib/editor-storage'
 import { EXAMPLE_POOL_SIZE, randomTestString } from '../lib/accepted-strings'
+import { ThemeToggle } from './theme-toggle'
+import { WorkspaceCat } from './workspace-cat'
 import { Dropdown, MenuItem } from './menus'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 import type { OpenTab } from './automata-editor'
@@ -78,16 +80,16 @@ function ParseTreeView({ tree, shownSteps, colorOf }: { tree: ParseTree; shownSt
     {nodes.filter(node => node.parent !== null && visible(node)).map(node => {
       const parent = nodes[node.parent!]
       return <line key={`edge-${node.id}`} x1={parent.x} y1={parent.y + 16} x2={node.x} y2={node.y - 16}
-        stroke={colorOf(parent.symbol)} strokeOpacity={parent.expandedAt === latest ? 1 : 0.55} strokeWidth={parent.expandedAt === latest ? 2.4 : 1.6} />
+        style={{ stroke: colorOf(parent.symbol) }} strokeOpacity={parent.expandedAt === latest ? 1 : 0.55} strokeWidth={parent.expandedAt === latest ? 2.4 : 1.6} />
     })}
     {nodes.filter(visible).map(node => {
-      const color = node.kind === 'nonterminal' ? colorOf(node.symbol) : node.kind === 'epsilon' ? '#8a8a96' : '#e4e4e7'
+      const color = node.kind === 'nonterminal' ? colorOf(node.symbol) : node.kind === 'epsilon' ? 'var(--muted)' : 'var(--text)'
       const pulsing = node.expandedAt === latest
       return <g key={node.id} className={`parse-node is-${node.kind} ${pulsing ? 'is-latest' : ''}`} style={{ color }}>
         {node.kind === 'nonterminal'
-          ? <circle cx={node.x} cy={node.y} r={16} fill="#202027" stroke={color} strokeWidth={pulsing ? 2.6 : 1.5} />
-          : <rect x={node.x - 14} y={node.y - 13} width={28} height={26} rx={6} fill="#17171c" stroke={color} strokeOpacity={0.55} strokeWidth={1.2} />}
-        <text x={node.x} y={node.y} fill={color} textAnchor="middle" dominantBaseline="central">{node.symbol}</text>
+          ? <circle cx={node.x} cy={node.y} r={16} style={{ fill: 'var(--node-fill)', stroke: color }} strokeWidth={pulsing ? 2.6 : 1.5} />
+          : <rect x={node.x - 14} y={node.y - 13} width={28} height={26} rx={6} style={{ fill: 'var(--label-fill)', stroke: color }} strokeOpacity={0.55} strokeWidth={1.2} />}
+        <text x={node.x} y={node.y} style={{ fill: color }} textAnchor="middle" dominantBaseline="central">{node.symbol}</text>
       </g>
     })}
   </svg>
@@ -147,7 +149,7 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
   const report = useMemo(() => grammar ? analyzeGrammar(grammar) : null, [grammar])
   const colorOf = useCallback((symbol: string) => {
     const index = grammar?.nonterminals.indexOf(symbol) ?? -1
-    return index === -1 ? '#9292a0' : SOURCE_COLORS[index % SOURCE_COLORS.length]
+    return inkColor(index === -1 ? '#9292a0' : SOURCE_COLORS[index % SOURCE_COLORS.length])
   }, [grammar])
   const issues = report ? [
     ...report.undefinedSymbols.map(symbol => ({ symbol, text: 'has no rules, so it can never finish' })),
@@ -250,6 +252,7 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
         </Dropdown>
       </div>
       <div className="toolbar-spacer" />
+      <ThemeToggle />
       <div className={`save-status ${saveFailed ? 'is-error' : saveStatus.startsWith('Saved') ? 'is-ok' : ''}`} role="status"
         title="Only on this browser and device. Clearing browser data removes this grammar. Each tab saves separately.">
         <span className="save-dot" aria-hidden="true" /><span>{saveStatus}</span>
@@ -341,6 +344,7 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
           </div> : <div className="canvas-empty-hint">{testResult?.status === 'rejected'
             ? 'No parse tree: this string is not in the language.'
             : 'Test a string below to see its parse tree and leftmost derivation here'}</div>}
+          <WorkspaceCat result={testResult} watching={animating} placement="left" />
         </div>
         <section className="string-test-panel" aria-label="Terminals and string test">
           <button className="string-test-toggle" type="button" aria-expanded={testPanelOpen} aria-controls="cfg-test-content" onClick={() => setTestPanelOpen(open => !open)}>

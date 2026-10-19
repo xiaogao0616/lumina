@@ -4,6 +4,8 @@ export type TabMode = AutomatonMode | 'cfg'
 export type StateKind = 'start' | 'state' | 'accept'
 
 export const SOURCE_COLORS = ['#67c9ff', '#ffb86b', '#c4a0ff', '#64dcb4', '#f48fb1', '#e5d36f', '#91a8ff', '#ed9c78']
+/** Saved state colors are tuned for a dark canvas; the light theme darkens them (--ink-l, --ink-c) so they keep contrast. */
+export const inkColor = (color: string) => `oklch(from ${color} calc(l * var(--ink-l, 1)) calc(c * var(--ink-c, 1)) h)`
 export const EMPTY_SET_LABEL = '∅'
 export const SINK_ID = 'dfa-empty'
 
