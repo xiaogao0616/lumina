@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { createContext, useContext, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
-  ArrowRightLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CirclePlus, CircleQuestionMark, CircleX, Copy, Dices, FileDown,
-  FileUp, FolderOpen, GripVertical, ImageDown, Layers, ListChecks, Minimize2, Pencil, Play, Redo2, Regex, TextCursorInput,
+  ArrowRightLeft, Brackets, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CirclePlus, CircleQuestionMark, CircleX, Contrast, Copy, Dices, FileCode, FileDown,
+  FileUp, FolderOpen, GitCompareArrows, GraduationCap, GripVertical, ImageDown, Layers, Link2, ListChecks, Minimize2, Pencil, Play, Redo2, Regex, TextCursorInput,
   TriangleAlert, Trash2, Undo2, Wrench, X, Zap,
 } from 'lucide-react'
 import {
@@ -56,6 +56,7 @@ import {
   LEGACY_EDITOR_STORAGE_KEY,
   graphToSavedEditor,
   legacyModeTabsIndexKey,
+  savedEditorToGraph,
   readLegacyModeTabsIndex,
   readSavedEditor,
   readTabsIndex,
@@ -80,6 +81,11 @@ import { WorkspaceCat } from './workspace-cat'
 import { Dropdown, MenuItem } from './menus'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 import { useAiBuilder, type OpenAiResult } from './ai-builder'
+import { CompareDialog, ExerciseBanner, PracticeDialog, RegexDialog, ShareDialog, downloadFile, shareUrl, type PeerTab } from './lab-tools'
+import { complementAutomaton } from '../lib/regular-ops'
+import { SOLVED_KEY, checkExercise, exerciseById, readSolved, type Exercise, type ExerciseVerdict } from '../lib/exercises'
+import { decodeShare, shareCodeFromHash } from '../lib/share-link'
+import { graphToTikz } from '../lib/graph-tikz'
 
 type AutomataNodeData = { label: string; kind: StateKind; color?: string; related?: boolean; accepting?: boolean; onRename?: () => void; onDelete?: () => void; animating?: 'active' | 'accept' | 'reject'; animatingTick?: number }
 type AutomataNode = Node<AutomataNodeData>
@@ -481,9 +487,25 @@ function StackPanel({ step, index, total, inputLength }: { step: PdaStep | null;
   </aside>
 }
 
-export type OpenTab = (mode: TabMode, graph?: AutomatonGraph, extras?: Parameters<typeof graphToSavedEditor>[2], title?: string) => void
+/** Opens a new tab: an automaton tab from a graph, or a CFG tab from grammar text. */
+export type OpenTab = (mode: TabMode, content?: AutomatonGraph | { grammar: string }, extras?: Parameters<typeof graphToSavedEditor>[2], title?: string) => void
 
-function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMode; saveKey: string; tabTitle: string; onConvert: OpenTab }) {
+/** Reads another tab's saved graph for Compare, or null if it can't be read. */
+function peerGraph(tab: SavedTab): AutomatonGraph | null {
+  if (tab.mode !== 'dfa' && tab.mode !== 'nfa') return null
+  try {
+    const raw = localStorage.getItem(tabStorageKey(tab.mode, tab.id))
+    return raw === null ? null : savedEditorToGraph(readSavedEditor(raw, tab.mode))
+  } catch { return null }
+}
+
+function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSolved }: {
+  mode: AutomatonMode; saveKey: string; tabTitle: string; onConvert: OpenTab
+  /** The workspace's other DFA and NFA tabs, for Compare or combine. */
+  peers: SavedTab[]
+  exercise?: Exercise
+  onSolved?: (exerciseId: string) => void
+}) {
   const isDfa = mode === 'dfa'
   const isPda = mode === 'pda'
   const [testPanelOpen, setTestPanelOpen] = useState(true)
@@ -905,6 +927,30 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
     setReshapeTick(tick => tick + 1)
   }, [nodes, edges, symbols, setNodes, setEdges])
 
+  const [toolDialog, setToolDialog] = useState<'compare' | 'regex' | null>(null)
+  const complement = useCallback(() => {
+    const result = complementAutomaton(graphFromEditor(nodes, edges, symbols))
+    if (!result.ok) { setConvertError(result.message); return }
+    onConvert('dfa', result.graph, { testString }, `Complement of ${tabTitle}`)
+  }, [nodes, edges, symbols, testString, tabTitle, onConvert])
+  const tryWord = useCallback((word: string) => {
+    setTestString(word)
+    setTestPanelOpen(true)
+    requestAnimationFrame(() => testInputRef.current?.focus())
+  }, [])
+
+  // A practice tab's verdict belongs to the graph it was computed for, like a test result.
+  const [exerciseCheck, setExerciseCheck] = useState<{ key: string; verdict: ExerciseVerdict } | null>(null)
+  const exerciseKey = JSON.stringify([nodes.map(node => [node.id, node.data.kind, node.data.accepting]), edges.map(edge => [edge.source, edge.target, transitionSymbols(edge)]), symbols])
+  const checkAnswer = useCallback(() => {
+    if (!exercise) return
+    cancelConnection()
+    const verdict = checkExercise(exercise, graphFromEditor(nodes, edges, symbols))
+    setExerciseCheck({ key: exerciseKey, verdict })
+    if (verdict.status === 'correct') onSolved?.(exercise.id)
+  }, [exercise, cancelConnection, nodes, edges, symbols, exerciseKey, onSolved])
+  const exerciseVerdict = exerciseCheck?.key === exerciseKey ? exerciseCheck.verdict : null
+
   const loadPdaExample = useCallback((example: AutomatonGraph) => {
     cancelConnection()
     const flow = graphToFlow(example)
@@ -930,16 +976,15 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
     setRegexPopoverOpen(false)
   }, [regexInput, setNodes, setEdges])
 
-  const downloadFile = (filename: string, contents: string, type: string) => {
-    const url = URL.createObjectURL(new Blob([contents], { type }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    link.click()
-    URL.revokeObjectURL(url)
-  }
   const exportJson = useCallback(() => downloadFile(`automata-lab-${mode}.json`, savedJson, 'application/json'), [savedJson, mode])
   const exportSvg = useCallback(() => downloadFile(`automata-lab-${mode}.svg`, graphToSvg(graph, undefined, isPda ? pdaEdgeCaption : undefined), 'image/svg+xml'), [graph, mode, isPda])
+  const exportTikz = useCallback(() => downloadFile(`automata-lab-${mode}.tex`, graphToTikz(graph, { pda: isPda }), 'application/x-tex'), [graph, mode, isPda])
+  // undefined: closed; null: open while the link is being made.
+  const [sharing, setSharing] = useState<string | null | undefined>(undefined)
+  const openShare = useCallback(() => {
+    setSharing(null)
+    shareUrl(JSON.parse(savedJson) as SavedEditor).then(setSharing, () => setSharing(undefined))
+  }, [savedJson])
   const [importError, setImportError] = useState('')
   const importInputRef = useRef<HTMLInputElement>(null)
   const importJson = useCallback((file: File) => {
@@ -1149,6 +1194,9 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
             <div className="menu-separator" role="separator" />
             <MenuItem icon={FileDown} label="Export JSON" hint="Re-importable save of this graph" onSelect={exportJson} close={close} />
             <MenuItem icon={ImageDown} label="Export SVG" hint="Static picture of the canvas" onSelect={exportSvg} close={close} />
+            <MenuItem icon={FileCode} label="Export LaTeX (TikZ)" hint="A tikzpicture for homework, same layout" onSelect={exportTikz} close={close} />
+            <div className="menu-separator" role="separator" />
+            <MenuItem icon={Link2} label="Share link…" hint="Anyone with the link gets a copy of this tab" onSelect={openShare} close={close} />
           </>}
         </Dropdown>
         <input ref={importInputRef} type="file" accept="application/json" className="file-input-hidden"
@@ -1169,9 +1217,17 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
                 disabled={!isDfaShaped(graph)} onSelect={minimize} close={close} />
               <div className="menu-separator" role="separator" />
               <MenuItem icon={Copy} label="Open as NFA" hint="Copies this DFA into a new NFA tab" onSelect={convert} close={close} />
+              <MenuItem icon={Brackets} label="Convert to regex" hint="State elimination" onSelect={() => setToolDialog('regex')} close={close} />
+              <div className="menu-separator" role="separator" />
+              <MenuItem icon={GitCompareArrows} label="Compare or combine…" hint="Same language? Union, intersection, difference" onSelect={() => setToolDialog('compare')} close={close} />
+              <MenuItem icon={Contrast} label="Complement" hint="Swap accepting states, opens a new DFA tab" onSelect={complement} close={close} />
             </> : <>
               <MenuItem icon={ArrowRightLeft} label="Convert to DFA" hint="Subset construction, opens a new DFA tab" onSelect={convert} close={close} />
               <MenuItem icon={Regex} label="Regex → NFA…" hint="Replaces this graph" onSelect={() => setRegexPopoverOpen(true)} close={close} />
+              <MenuItem icon={Brackets} label="Convert to regex" hint="State elimination" onSelect={() => setToolDialog('regex')} close={close} />
+              <div className="menu-separator" role="separator" />
+              <MenuItem icon={GitCompareArrows} label="Compare or combine…" hint="Same language? Union, intersection, difference" onSelect={() => setToolDialog('compare')} close={close} />
+              <MenuItem icon={Contrast} label="Complement" hint="Determinize, swap accepting states, opens a new DFA tab" onSelect={complement} close={close} />
             </>}
           </Dropdown>
           {mode === 'nfa' && regexPopoverOpen && <div className="regex-popover" role="dialog" aria-label="Generate an NFA from a regular expression">
@@ -1203,6 +1259,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
     </header>
     {convertError && <p className="convert-error" role="alert">{convertError}</p>}
     {importError && <p className="convert-error" role="alert">{importError}</p>}
+    {exercise && <ExerciseBanner exercise={exercise} verdict={exerciseVerdict} onCheck={checkAnswer} onUse={tryWord} />}
     <section className="workspace"><aside ref={sidebarRef} className={`sidebar ${sidebarOpen ? '' : 'is-collapsed'} ${draggingState ? 'is-state-dragging' : ''} ${overDeleteArea ? 'is-delete-target' : ''}`}>
       <div className="sidebar-head">
         <button className="sidebar-toggle icon-button" type="button" aria-label={sidebarOpen ? 'Collapse components panel' : 'Expand components panel'} aria-expanded={sidebarOpen}
@@ -1358,6 +1415,12 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
       </section>
     </section>
     {dialog && <Dialog state={dialog} onClose={() => setDialog(null)} />}
+    {toolDialog === 'compare' && <CompareDialog graph={graph} title={tabTitle} onClose={() => setToolDialog(null)} onUse={tryWord}
+      peers={peers.map(tab => ({ id: tab.id, title: tab.title, graph: peerGraph(tab) } satisfies PeerTab))}
+      onOpen={(combined, title) => onConvert('dfa', combined, { testString }, title)} />}
+    {toolDialog === 'regex' && <RegexDialog graph={graph} onClose={() => setToolDialog(null)}
+      onOpenNfa={(nfa, pattern) => onConvert('nfa', nfa, { testString }, `/${pattern}/`)} />}
+    {sharing !== undefined && <ShareDialog url={sharing} onClose={() => setSharing(undefined)} />}
   </main></TransitionContext.Provider>
 }
 
@@ -1422,15 +1485,53 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
     try { localStorage.setItem(tabsIndexKey(), JSON.stringify(index)) } catch { /* Per-tab graphs still save; only the tab strip itself failed to persist. */ }
   }, [index])
 
-  const openTab: OpenTab = useCallback((tabMode, graph, extras, title) => {
+  const openTab = useCallback((tabMode: TabMode, content?: AutomatonGraph | { grammar: string }, extras?: Parameters<typeof graphToSavedEditor>[2], title?: string, exercise?: string) => {
     const id = crypto.randomUUID()
-    if (graph && tabMode !== 'cfg') localStorage.setItem(tabStorageKey(tabMode, id), JSON.stringify(graphToSavedEditor(tabMode, graph, extras)))
+    try {
+      if (content && 'grammar' in content) {
+        if (tabMode === 'cfg') localStorage.setItem(tabStorageKey('cfg', id), JSON.stringify({ version: 1, mode: 'cfg', grammar: content.grammar, testString: extras?.testString ?? '' }))
+      } else if (content && tabMode !== 'cfg') localStorage.setItem(tabStorageKey(tabMode, id), JSON.stringify(graphToSavedEditor(tabMode, content, extras)))
+    } catch { /* the tab still opens, just with its default content */ }
     setIndex(current => {
       const tabs = current?.tabs ?? []
       const resolvedTitle = title ?? `${tabMode.toUpperCase()} ${tabs.filter(tab => tab.mode === tabMode).length + 1}`
-      return { activeId: id, tabs: [...tabs, { id, mode: tabMode, title: resolvedTitle }] }
+      return { activeId: id, tabs: [...tabs, { id, mode: tabMode, title: resolvedTitle, ...(exercise ? { exercise } : {}) }] }
     })
-  }, [])
+  }, []) satisfies OpenTab
+
+  // Practice: which exercises are solved (this browser only), and starting one in a fresh tab.
+  const [practiceOpen, setPracticeOpen] = useState(false)
+  const [solved, setSolved] = useState<string[]>([])
+  useEffect(() => { try { setSolved(readSolved(localStorage.getItem(SOLVED_KEY))) } catch { /* nothing remembered */ } }, [])
+  const markSolved = useCallback((exerciseId: string) => setSolved(current => {
+    if (current.includes(exerciseId)) return current
+    const next = [...current, exerciseId]
+    try { localStorage.setItem(SOLVED_KEY, JSON.stringify(next)) } catch { /* this page only */ }
+    return next
+  }), [])
+  const startExercise = (exercise: Exercise) => {
+    const starter: AutomatonGraph = {
+      states: [{ id: 'q0', label: 'start₀', kind: 'start', position: { x: 290, y: 168 }, color: SOURCE_COLORS[0] }],
+      transitions: [],
+      symbols: [...exercise.alphabet],
+    }
+    openTab(exercise.mode, starter, undefined, `Practice: ${exercise.title}`, exercise.id)
+  }
+
+  // A share link (#share=…) opens as a new tab; ?practice opens the exercise picker.
+  const [linkError, setLinkError] = useState('')
+  const ready = !!index
+  useEffect(() => {
+    if (!ready) return
+    if (new URLSearchParams(location.search).has('practice')) setPracticeOpen(true)
+    const code = shareCodeFromHash(location.hash)
+    if (!code) return
+    history.replaceState(null, '', location.pathname + location.search)
+    decodeShare(code).then(content => {
+      if (content.mode === 'cfg') openTab('cfg', { grammar: content.grammar }, { testString: content.testString }, 'Shared CFG')
+      else openTab(content.mode, savedEditorToGraph(content), { categories: content.categories, nextIndices: content.nextIndices, testString: content.testString }, `Shared ${content.mode.toUpperCase()}`)
+    }, () => setLinkError('That share link is damaged or incomplete, so nothing was opened. Ask for the link again.'))
+  }, [ready, openTab])
   // AI results arrive in the background, so they join the strip without taking focus from the tab in use.
   const openAiResult: OpenAiResult = useCallback((tabMode, { graph, grammar, title }) => {
     const id = crypto.randomUUID()
@@ -1477,12 +1578,19 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
       <button type="button" className="tab-add is-pda" aria-label="New PDA tab" title="New PDA tab" onClick={() => openTab('pda')}>+ PDA</button>
       <button type="button" className="tab-add is-cfg" aria-label="New CFG tab" title="New grammar tab" onClick={() => openTab('cfg')}>+ CFG</button>
       {ai.button}
+      <button type="button" className="tab-add is-practice" aria-label="Practice" title="Practice: build a machine for a language and check it" onClick={() => setPracticeOpen(true)}>
+        <GraduationCap size={12} aria-hidden="true" /> Practice
+      </button>
     </div>
+    {linkError && <p className="convert-error" role="alert">{linkError} <button type="button" className="text-button" onClick={() => setLinkError('')}>Dismiss</button></p>}
     {activeTab.mode === 'cfg'
       ? <GrammarLab key={activeTab.id} saveKey={tabStorageKey('cfg', activeTab.id)} tabTitle={activeTab.title} onConvert={openTab} />
-      : <ReactFlowProvider key={activeTab.id}><AutomataLab mode={activeTab.mode} saveKey={tabStorageKey(activeTab.mode, activeTab.id)} tabTitle={activeTab.title} onConvert={openTab} /></ReactFlowProvider>}
+      : <ReactFlowProvider key={activeTab.id}><AutomataLab mode={activeTab.mode} saveKey={tabStorageKey(activeTab.mode, activeTab.id)} tabTitle={activeTab.title} onConvert={openTab}
+        peers={index.tabs.filter(tab => tab.id !== activeTab.id && (tab.mode === 'dfa' || tab.mode === 'nfa'))}
+        exercise={exerciseById(activeTab.exercise)} onSolved={markSolved} /></ReactFlowProvider>}
     {dialog && <Dialog state={dialog} onClose={() => setDialog(null)} />}
     {ai.dialog}
+    {practiceOpen && <PracticeDialog solved={solved} onStart={startExercise} onClose={() => setPracticeOpen(false)} />}
   </div>
 }
 

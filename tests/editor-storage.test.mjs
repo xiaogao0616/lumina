@@ -110,3 +110,21 @@ test('cfg saves and tabs of every mode', () => {
   assert.deepEqual(readTabsIndex(JSON.stringify(index)), index)
   assert.equal(tabStorageKey('cfg', 'c'), 'automata-lab.cfg.tab.c.v1')
 })
+
+test('a practice tab keeps its exercise id in the index', () => {
+  const { readTabsIndex: readIndex } = loadTs('editor-storage.ts')
+  const index = { activeId: 'a', tabs: [{ id: 'a', mode: 'dfa', title: 'Practice: Ends in ab', exercise: 'ends-ab' }, { id: 'b', mode: 'nfa', title: 'NFA 1' }] }
+  assert.deepEqual(readIndex(JSON.stringify(index)), index)
+  const junk = { activeId: 'a', tabs: [{ id: 'a', mode: 'dfa', title: 'DFA 1', exercise: 7 }] }
+  assert.deepEqual(readIndex(JSON.stringify(junk)), { activeId: 'a', tabs: [{ id: 'a', mode: 'dfa', title: 'DFA 1' }] })
+})
+
+test('savedEditorToGraph undoes graphToSavedEditor', () => {
+  const { savedEditorToGraph } = loadTs('editor-storage.ts')
+  const graph = {
+    states: [{ id: 's', label: 'start₀', kind: 'start', accepting: true, position: { x: 1, y: 2 }, color: '#67c9ff' }, { id: 'f', label: 'q₀', kind: 'state', position: { x: 3, y: 4 }, color: '#ffb86b' }],
+    transitions: [{ id: 'e', source: 's', target: 'f', symbols: ['a', 'b'] }],
+    symbols: ['a', 'b'],
+  }
+  assert.deepEqual(savedEditorToGraph(graphToSavedEditor('dfa', graph)), graph)
+})

@@ -174,6 +174,18 @@ export function graphToSavedEditor(
   }
 }
 
+/** The plain graph in a save, for the algorithms in lib/ (positions and colors kept). */
+export function savedEditorToGraph(saved: SavedEditor): AutomatonGraph {
+  return {
+    states: saved.nodes.map(node => ({
+      id: node.id, label: node.data.label, kind: node.data.kind, position: { ...node.position }, color: node.data.color,
+      ...(node.data.accepting ? { accepting: true } : {}),
+    })),
+    transitions: saved.edges.map(edge => ({ id: edge.id, source: edge.source, target: edge.target, symbols: [...edge.symbols] })),
+    symbols: [...saved.symbols],
+  }
+}
+
 export function savedEditorHasContent(raw: string | null): boolean {
   if (raw === null) return false
   try {
@@ -196,7 +208,8 @@ export function readSavedGrammar(raw: string): SavedGrammar {
 // One browser-tab-style strip shared by every mode — a tab can be a DFA, NFA, PDA or CFG.
 // Each tab's own save lives at its own tabStorageKey; this index just tracks which tabs
 // exist, their mode and title, and which one is active.
-export type SavedTab = { id: string; mode: TabMode; title: string }
+// A practice tab also remembers which exercise it is for (see lib/exercises.ts).
+export type SavedTab = { id: string; mode: TabMode; title: string; exercise?: string }
 export type TabsIndex = { activeId: string; tabs: SavedTab[] }
 
 export function tabsIndexKey(): string {
@@ -212,7 +225,7 @@ export function readTabsIndex(raw: string): TabsIndex {
   if (!record(value) || !text(value.activeId) || !value.activeId || !Array.isArray(value.tabs)) return fail()
   const tabs = value.tabs.map(tab => {
     if (!record(tab) || !text(tab.id) || !tab.id || !tabMode(tab.mode) || !text(tab.title) || !tab.title.trim()) return fail()
-    return { id: tab.id, mode: tab.mode, title: tab.title }
+    return { id: tab.id, mode: tab.mode, title: tab.title, ...(text(tab.exercise) && tab.exercise ? { exercise: tab.exercise } : {}) }
   })
   if (!tabs.length || !unique(tabs.map(tab => tab.id)) || !tabs.some(tab => tab.id === value.activeId)) return fail()
   return { activeId: value.activeId, tabs }

@@ -109,6 +109,19 @@ export type MembershipResult =
  */
 export function testMembership(grammar: Grammar, input: string): MembershipResult {
   const chars = Array.from(input)
+  const parse = earley(grammar, chars)
+  if (!parse.ok) return { status: 'rejected', message: parse.message }
+  const tree = buildTree(grammar, chars, parse.spans)
+  if (!tree) return { status: 'accepted', message: `${grammar.start} derives this string. The parse tree was too large to rebuild.`, tree: { symbol: grammar.start, children: [] }, derivation: [] }
+  const derivation = leftmostDerivation(tree)
+  return { status: 'accepted', tree, derivation, message: `${grammar.start} derives ${chars.length ? `all ${chars.length} characters` : 'the empty string'} in ${derivation.length - 1} step${derivation.length === 2 ? '' : 's'}.` }
+}
+
+/** Completed spans: `${nonterminal}@${start}` → every end where it finishes. */
+type Spans = Map<string, Set<number>>
+
+/** The Earley recognizer behind testMembership, also used to enumerate parse trees. */
+function earley(grammar: Grammar, chars: string[]): { ok: true; spans: Spans } | { ok: false; message: string } {
   const nullable = new Set(analyzeGrammar(grammar).nullable)
   const byHead = new Map<string, number[]>()
   grammar.productions.forEach((production, index) => byHead.set(production.head, [...(byHead.get(production.head) ?? []), index]))
@@ -116,8 +129,7 @@ export function testMembership(grammar: Grammar, input: string): MembershipResul
   type Item = { production: number; dot: number; origin: number }
   const sets: Item[][] = Array.from({ length: chars.length + 1 }, () => [])
   const keys: Set<string>[] = Array.from({ length: chars.length + 1 }, () => new Set())
-  // Completed spans: `${nonterminal}@${start}` → every end where it finishes.
-  const spans = new Map<string, Set<number>>()
+  const spans: Spans = new Map()
   const add = (position: number, item: Item) => {
     const key = `${item.production}.${item.dot}.${item.origin}`
     if (keys[position].has(key)) return
@@ -147,20 +159,70 @@ export function testMembership(grammar: Grammar, input: string): MembershipResul
       }
     }
     if (position < chars.length && !sets[position + 1].length) {
-      return { status: 'rejected', message: `No derivation can produce character ${position + 1} (${JSON.stringify(chars[position])}) at that spot.` }
+      return { ok: false, message: `No derivation can produce character ${position + 1} (${JSON.stringify(chars[position])}) at that spot.` }
     }
   }
   if (!spans.get(`${grammar.start}@0`)?.has(chars.length)) {
-    return { status: 'rejected', message: `${grammar.start} can't derive ${chars.length ? 'this whole string' : 'the empty string'}. Every character was matched by some prefix, but no derivation finishes here.` }
+    return { ok: false, message: `${grammar.start} can't derive ${chars.length ? 'this whole string' : 'the empty string'}. Every character was matched by some prefix, but no derivation finishes here.` }
   }
-  const tree = buildTree(grammar, chars, spans)
-  if (!tree) return { status: 'accepted', message: `${grammar.start} derives this string. The parse tree was too large to rebuild.`, tree: { symbol: grammar.start, children: [] }, derivation: [] }
-  const derivation = leftmostDerivation(tree)
-  return { status: 'accepted', tree, derivation, message: `${grammar.start} derives ${chars.length ? `all ${chars.length} characters` : 'the empty string'} in ${derivation.length - 1} step${derivation.length === 2 ? '' : 's'}.` }
+  return { ok: true, spans }
+}
+
+/**
+ * Up to `limit` different parse trees for the input (none if it isn't derivable). Trees that go
+ * round a cycle (A ⇒+ A) are left out, since a grammar with one has infinitely many of them.
+ * `complete` is false when the search ran out of budget before it could be sure.
+ */
+export function parseTrees(grammar: Grammar, input: string, limit = 2): { trees: ParseTree[]; complete: boolean } {
+  const chars = Array.from(input)
+  const parse = earley(grammar, chars)
+  if (!parse.ok) return { trees: [], complete: true }
+  const spans = parse.spans
+  let budget = 200000
+  const active = new Set<string>()
+  const trees = (symbol: string, start: number, end: number): ParseTree[] => {
+    const key = `${symbol}@${start}-${end}`
+    if (active.has(key) || !spans.get(`${symbol}@${start}`)?.has(end) || --budget < 0) return []
+    active.add(key)
+    const found: ParseTree[] = []
+    for (const production of grammar.productions) {
+      if (production.head !== symbol) continue
+      for (const children of bodies(production.body, 0, start, end)) {
+        found.push({ symbol, children: children.length ? children : [{ symbol: EPSILON, children: [] }] })
+        if (found.length >= limit) break
+      }
+      if (found.length >= limit) break
+    }
+    active.delete(key)
+    return found
+  }
+  // Each way the rest of a right side can cover chars[position, end), up to `limit` of them.
+  const bodies = (body: string[], index: number, position: number, end: number): ParseTree[][] => {
+    if (index === body.length) return position === end ? [[]] : []
+    const symbol = body[index]
+    if (!isNonterminal(symbol)) {
+      if (position >= end || chars[position] !== symbol) return []
+      return bodies(body, index + 1, position + 1, end).map(rest => [{ symbol, children: [] }, ...rest])
+    }
+    const found: ParseTree[][] = []
+    for (const stop of [...(spans.get(`${symbol}@${position}`) ?? [])].sort((a, b) => a - b)) {
+      if (stop > end) continue
+      const heads = trees(symbol, position, stop)
+      if (!heads.length) continue
+      const rests = bodies(body, index + 1, stop, end)
+      for (const head of heads) for (const rest of rests) {
+        found.push([head, ...rest])
+        if (found.length >= limit) return found
+      }
+    }
+    return found
+  }
+  const found = trees(grammar.start, 0, chars.length)
+  return { trees: found, complete: budget >= 0 }
 }
 
 /** Recovers one parse tree from Earley's completed spans. Cycles (A → A, or ε-loops) are cut. */
-function buildTree(grammar: Grammar, chars: string[], spans: Map<string, Set<number>>): ParseTree | null {
+function buildTree(grammar: Grammar, chars: string[], spans: Spans): ParseTree | null {
   const memo = new Map<string, ParseTree | null>()
   const active = new Set<string>()
   let budget = 200000

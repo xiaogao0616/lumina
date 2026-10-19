@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ArrowRightLeft, BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CircleQuestionMark, Dices, FileDown, FileUp, FolderOpen,
-  Play, TextCursorInput, TriangleAlert, Wrench, Zap,
+  ArrowRightLeft, BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CircleQuestionMark, CircleX, Dices, FileCode, FileDown, FileUp, FolderOpen,
+  GitFork, Link2, ListTree, Play, TextCursorInput, TriangleAlert, Wrench, Zap,
 } from 'lucide-react'
 import { SOURCE_COLORS, inkColor } from '../lib/automaton-graph'
 import {
@@ -18,6 +18,10 @@ import { WorkspaceCat } from './workspace-cat'
 import { Dropdown, MenuItem } from './menus'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 import type { OpenTab } from './automata-editor'
+import { ShareDialog, ToolModal, downloadFile, shareUrl, showWord } from './lab-tools'
+import { findAmbiguity, toChomskyNormalForm, type AmbiguityResult, type CnfResult } from '../lib/cfg-transform'
+import { grammarToLatex } from '../lib/graph-tikz'
+import type { Grammar } from '../lib/cfg'
 
 const DEFAULT_GRAMMAR = 'S → aSb | ε'
 const DERIVE_STEP_MS = 520
@@ -95,13 +99,43 @@ function ParseTreeView({ tree, shownSteps, colorOf }: { tree: ParseTree; shownSt
   </svg>
 }
 
-function downloadFile(filename: string, contents: string, type: string) {
-  const url = URL.createObjectURL(new Blob([contents], { type }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
+/** Chomsky normal form, step by step, with the result ready to open as a new tab. */
+function CnfDialog({ result, onOpen, onClose }: { result: CnfResult; onOpen: (text: string) => void; onClose: () => void }) {
+  return <ToolModal title="Chomsky normal form" icon={ListTree} className="cnf-dialog" onClose={onClose}
+    actions={result.ok ? <>
+      <button type="button" className="modal-button" onClick={onClose}>Close</button>
+      <button type="button" className="modal-button is-primary" onClick={() => { onOpen(result.text); onClose() }}>Open as CFG tab</button>
+    </> : undefined}>
+    {!result.ok ? <p className="tool-error" role="alert"><TriangleAlert size={14} aria-hidden="true" /> {result.message}</p> : <>
+      <p className="tool-lead">Every rule is now <code>A → BC</code> or <code>A → a</code>, plus <code>S → ε</code> only when the language has ε. Same language, same steps as Sipser.</p>
+      <ol className="cnf-steps">
+        {result.steps.map((step, index) => <li key={index}><b>{step.title}</b><pre>{step.grammar}</pre></li>)}
+      </ol>
+      {!result.steps.length && <p className="tool-note">This grammar is already in Chomsky normal form.</p>}
+    </>}
+  </ToolModal>
+}
+
+/** Two different parse trees for one string, or how far the search looked. */
+function AmbiguityDialog({ grammar, result, colorOf, onUse, onClose }: {
+  grammar: Grammar; result: AmbiguityResult; colorOf: (symbol: string) => string; onUse: (word: string) => void; onClose: () => void
+}) {
+  return <ToolModal title="Ambiguity check" icon={GitFork} className={result.status === 'ambiguous' ? 'ambiguity-dialog is-wide' : 'ambiguity-dialog'} onClose={onClose}>
+    {result.status === 'ambiguous' ? <>
+      <div className="tool-verdict is-bad" role="status"><p><CircleX size={16} aria-hidden="true" /> Ambiguous: <code className="word-chip">{showWord(result.input)}</code> has two different parse trees.</p></div>
+      <div className="ambiguity-trees">
+        {result.trees.map((tree, index) => <figure key={index}>
+          <figcaption>Tree {index + 1}</figcaption>
+          <div className="parse-tree-scroll"><ParseTreeView tree={tree} shownSteps={Infinity} colorOf={colorOf} /></div>
+        </figure>)}
+      </div>
+      <p className="tool-note">Each tree is a different leftmost derivation of the same string. Rewriting the rules so only one tree is possible (for example by giving operators different levels) removes the ambiguity.</p>
+      <div className="modal-actions is-left"><button type="button" className="secondary-button" onClick={() => { onUse(result.input); onClose() }}><Play size={13} aria-hidden="true" /> Test this string</button></div>
+    </> : <>
+      <div className="tool-verdict is-good" role="status"><p><CircleCheck size={16} aria-hidden="true" /> No ambiguous string found.</p></div>
+      <p className="tool-note">Checked {result.checked} string{result.checked === 1 ? '' : 's'} that {grammar.start} derives, up to length {result.maxLength}: each had exactly one parse tree. Ambiguity can’t be decided by any program in general, so a longer string could still have two trees, but short ones are where it usually shows.</p>
+    </>}
+  </ToolModal>
 }
 
 /** A grammar tab: rules typed as text, with membership tests that show a derivation and a parse tree. */
@@ -191,6 +225,12 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
     if (!grammar) return
     onConvert('pda', cfgToPda(grammar), { testString }, `PDA from ${tabTitle}`)
   }
+  const [toolDialog, setToolDialog] = useState<{ kind: 'cnf'; result: CnfResult } | { kind: 'ambiguity'; result: AmbiguityResult } | null>(null)
+  const [sharing, setSharing] = useState<string | null | undefined>(undefined)
+  const openShare = () => {
+    setSharing(null)
+    shareUrl(JSON.parse(savedJson) as SavedGrammar).then(setSharing, () => setSharing(undefined))
+  }
   const insertAtCursor = (text: string) => {
     const area = textareaRef.current
     if (!area) { setGrammarText(current => current + text); return }
@@ -237,6 +277,10 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
             <div className="menu-separator" role="separator" />
             <MenuItem icon={FileDown} label="Export JSON" hint="Re-importable save of this grammar" onSelect={() => downloadFile('automata-lab-cfg.json', savedJson, 'application/json')} close={close} />
             <MenuItem icon={FileDown} label="Export text" hint="The rules as plain text" onSelect={() => downloadFile('automata-lab-cfg.txt', grammarText, 'text/plain')} close={close} />
+            <MenuItem icon={FileCode} label="Export LaTeX" hint={grammar ? 'An align* block for homework' : 'Fix the grammar first'} disabled={!grammar}
+              onSelect={() => grammar && downloadFile('automata-lab-cfg.tex', grammarToLatex(grammar), 'application/x-tex')} close={close} />
+            <div className="menu-separator" role="separator" />
+            <MenuItem icon={Link2} label="Share link…" hint="Anyone with the link gets a copy of this tab" onSelect={openShare} close={close} />
           </>}
         </Dropdown>
         <input ref={importInputRef} type="file" accept="application/json" className="file-input-hidden"
@@ -245,6 +289,10 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
           trigger={<><Wrench size={15} aria-hidden="true" /> CFG tools <ChevronDown size={13} className="caret" aria-hidden="true" /></>}>
           {close => <>
             <MenuItem icon={ArrowRightLeft} label="Convert to PDA" hint={grammar ? 'Standard construction, opens a new PDA tab' : 'Fix the grammar first'} disabled={!grammar} onSelect={convertToPda} close={close} />
+            <MenuItem icon={ListTree} label="Chomsky normal form" hint={grammar ? 'Step by step, then open it as a new tab' : 'Fix the grammar first'} disabled={!grammar}
+              onSelect={() => grammar && setToolDialog({ kind: 'cnf', result: toChomskyNormalForm(grammar) })} close={close} />
+            <MenuItem icon={GitFork} label="Check for ambiguity" hint={grammar ? 'Looks for a string with two parse trees' : 'Fix the grammar first'} disabled={!grammar}
+              onSelect={() => grammar && setToolDialog({ kind: 'ambiguity', result: findAmbiguity(grammar) })} close={close} />
             <div className="menu-separator" role="separator" />
             {grammarExamples.map(example => <MenuItem key={example.name} icon={BookOpen} label={`Example: ${example.name}`} hint="Replaces these rules"
               onSelect={() => setGrammarText(example.grammar)} close={close} />)}
@@ -386,5 +434,10 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
         </section>
       </section>
     </section>
+    {toolDialog?.kind === 'cnf' && <CnfDialog result={toolDialog.result} onClose={() => setToolDialog(null)}
+      onOpen={text => onConvert('cfg', { grammar: text }, { testString }, `CNF of ${tabTitle}`)} />}
+    {toolDialog?.kind === 'ambiguity' && grammar && <AmbiguityDialog grammar={grammar} result={toolDialog.result} colorOf={colorOf} onClose={() => setToolDialog(null)}
+      onUse={word => { setTestString(word); setTestPanelOpen(true); requestAnimationFrame(() => testInputRef.current?.focus()) }} />}
+    {sharing !== undefined && <ShareDialog url={sharing} onClose={() => setSharing(undefined)} />}
   </main>
 }

@@ -12,7 +12,7 @@ A loud, hands-on DFA / NFA / PDA / CFG workbench that runs entirely in your brow
 ![React](https://img.shields.io/badge/React_19-20232a?logo=react&logoColor=61dafb)
 ![React Flow](https://img.shields.io/badge/React_Flow-ff0072?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-96_passing-34d399)
+![Tests](https://img.shields.io/badge/tests-133_passing-34d399)
 ![No backend](https://img.shields.io/badge/backend-none-67e8f9)
 
 <img src="docs/screenshot-home.jpg" alt="The Automata Lab home page: a bold headline, an animated automaton reading aab and accepting it, and one card per workspace" width="100%">
@@ -107,6 +107,8 @@ Four workspaces share one window as tabs, so a grammar can sit right next to the
 - Test a string and get its **parse tree** and **leftmost derivation**, animated step by step
 - Flags undefined, non-productive and unreachable nonterminals
 - Generate the shortest strings the grammar derives
+- Convert to **Chomsky normal form**, one Sipser step at a time
+- **Ambiguity check**: finds the shortest string with two parse trees and shows both
 
 </td>
 </tr>
@@ -119,6 +121,14 @@ Four workspaces share one window as tabs, so a grammar can sit right next to the
 <img src="docs/screenshot-dfa-diagnostics.jpg" alt="The DFA diagnostics panel listing missing transitions per state" width="100%">
 <br><sub>Diagnostics name every (state, character) pair that's still missing, so you know what's left before the DFA is complete.</sub>
 </div>
+
+## 🎓 Practice and proofs
+
+- **Practice mode**: twelve languages to build a DFA or NFA for. *Check my answer* compares your machine with the reference exactly and names the shortest string it gets wrong.
+- **Compare or combine** two tabs: an equivalence check with shortest counterexamples, plus union, intersection and difference by product construction, and complement.
+- **DFA/NFA → regex** by state elimination, in the same syntax Regex → NFA reads.
+- **Pumping lemma game** at `/pumping`: the computer picks *p* and the split, you pick *s* and *i*, and a table shows whether your *s* wins against every split.
+- **Share link** packs a tab into the URL, and **Export LaTeX** writes a TikZ picture of an automaton or an `align*` block of a grammar for homework.
 
 ## ✦ Build with AI
 
@@ -243,10 +253,14 @@ All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate 
 | `ai-automaton.ts` | Prompts for the AI builder and validation of what the model sends back |
 | `automaton-graph.ts` | Shared graph types, state colours and theme-aware ink |
 | `edge-geometry.ts` / `graph-svg.ts` | Edge routing on the canvas, and standalone SVG export with the same routing |
+| `regular-ops.ts` | Equivalence with shortest counterexamples, product constructions, complement, state elimination to regex |
+| `cfg-transform.ts` | Chomsky normal form with every step, and a bounded ambiguity search |
+| `exercises.ts` / `pumping.ts` | Practice exercises and their checker; languages and splits for the pumping lemma game |
+| `share-link.ts` / `graph-tikz.ts` | Compressed share links; TikZ and LaTeX export |
 | `editor-storage.ts` | Versioned, validated local saves and tab index |
 
 ```bash
-npm test           # 96 tests, node --test
+npm test           # 133 tests, node --test
 npm run typecheck  # route types + tsc --noEmit
 npm run build      # static export into out/
 ```
