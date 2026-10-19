@@ -73,6 +73,7 @@ import {
   type PdaStep,
 } from '../lib/pda'
 import { GrammarLab } from './grammar-editor'
+import { AiBuilderButton, type OpenAiResult } from './ai-builder'
 import { Dropdown, MenuItem } from './menus'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 
@@ -1425,6 +1426,12 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
       return { activeId: id, tabs: [...tabs, { id, mode: tabMode, title: resolvedTitle }] }
     })
   }, [])
+  const openAiResult: OpenAiResult = useCallback((tabMode, { graph, grammar, title }) => {
+    if (tabMode !== 'cfg') return openTab(tabMode, graph, undefined, title)
+    const id = crypto.randomUUID()
+    localStorage.setItem(tabStorageKey('cfg', id), JSON.stringify({ version: 1, mode: 'cfg', grammar: grammar ?? '', testString: '' }))
+    setIndex(current => ({ activeId: id, tabs: [...(current?.tabs ?? []), { id, mode: 'cfg', title }] }))
+  }, [openTab])
   // State updaters must stay pure (React may invoke them more than once, e.g. under Strict Mode),
   // so side effects — localStorage, opening the rename dialog — run once here, outside setIndex.
   const closeTab = (id: string) => {
@@ -1461,6 +1468,7 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
       <button type="button" className="tab-add is-nfa" aria-label="New NFA tab" title="New NFA tab" onClick={() => openTab('nfa')}>+ NFA</button>
       <button type="button" className="tab-add is-pda" aria-label="New PDA tab" title="New PDA tab" onClick={() => openTab('pda')}>+ PDA</button>
       <button type="button" className="tab-add is-cfg" aria-label="New CFG tab" title="New grammar tab" onClick={() => openTab('cfg')}>+ CFG</button>
+      <AiBuilderButton defaultTarget="auto" onResult={openAiResult} />
     </div>
     {activeTab.mode === 'cfg'
       ? <GrammarLab key={activeTab.id} saveKey={tabStorageKey('cfg', activeTab.id)} tabTitle={activeTab.title} onConvert={openTab} />

@@ -501,3 +501,27 @@ button, input { font: inherit; }
   .stack-panel { width: 132px; }
 }
 
+
+/* Build with AI: generate from a description, or recognize a photo. Built on the modal styles above. */
+.tab-add.is-ai { display: inline-flex; align-items: center; gap: 5px; }
+.tab-add.is-ai:hover { color: var(--violet, var(--text)); }
+.modal-box.ai-builder { max-width: 460px; max-height: calc(100dvh - 40px); overflow-y: auto; }
+.ai-builder h3 { position: relative; padding-right: 28px; }
+.ai-close { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--muted); cursor: pointer; }
+.ai-close:hover { color: var(--text); }
+.ai-segment { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: var(--radius-md); }
+.ai-segment button { height: 28px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--muted); font-size: var(--fs-small); font-weight: 600; cursor: pointer; }
+.ai-segment button[aria-selected="true"] { background: var(--border-strong); color: var(--text); }
+.ai-field { display: grid; grid-template-columns: 84px 1fr; align-items: center; gap: 10px; margin-top: 10px; color: var(--muted); font-size: var(--fs-small); }
+.ai-field select, .ai-field input { min-width: 0; height: 30px; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--panel); color: var(--text); font-size: var(--fs-body); }
+.modal-input.ai-textarea { height: auto; min-height: 56px; padding: 8px 10px; resize: vertical; font-family: inherit; line-height: 1.5; }
+.ai-photo { display: grid; gap: 8px; margin-top: 12px; }
+.ai-photo img { width: 100%; max-height: 220px; object-fit: contain; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--panel); }
+.ai-photo p { margin: 0; }
+.ai-photo-actions { display: flex; gap: 8px; }
+.ai-photo-actions .modal-button { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; }
+.ai-settings { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.ai-settings summary { color: var(--muted); font-size: var(--fs-small); font-weight: 600; cursor: pointer; }
+.modal-box p.ai-note { margin-top: 10px; color: var(--muted); font-size: var(--fs-small); }
+.modal-box p.ai-error { margin-top: 12px; color: var(--danger); }
+.modal-button:disabled { opacity: .5; cursor: not-allowed; }
