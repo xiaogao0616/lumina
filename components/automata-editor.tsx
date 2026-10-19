@@ -73,9 +73,9 @@ import {
   type PdaStep,
 } from '../lib/pda'
 import { GrammarLab } from './grammar-editor'
-import { AiBuilderButton, type OpenAiResult } from './ai-builder'
 import { Dropdown, MenuItem } from './menus'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
+import { AiBuilderButton, type OpenAiResult } from './ai-builder'
 
 type AutomataNodeData = { label: string; kind: StateKind; color?: string; related?: boolean; accepting?: boolean; onRename?: () => void; onDelete?: () => void; animating?: 'active' | 'accept' | 'reject'; animatingTick?: number }
 type AutomataNode = Node<AutomataNodeData>

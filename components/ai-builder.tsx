@@ -18,6 +18,7 @@ import {
   type AiSettings,
   type AiTarget,
 } from '../lib/ai-automaton'
+import './ai-builder.css'
 
 export type OpenAiResult = (mode: TabMode, result: { graph?: AutomatonGraph; grammar?: string; title: string }) => void
 
