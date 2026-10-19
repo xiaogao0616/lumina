@@ -79,6 +79,7 @@ import { ThemeToggle } from './theme-toggle'
 import { WorkspaceCat } from './workspace-cat'
 import { Dropdown, MenuItem } from './menus'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
+import { useAiBuilder, type OpenAiResult } from './ai-builder'
 
 type AutomataNodeData = { label: string; kind: StateKind; color?: string; related?: boolean; accepting?: boolean; onRename?: () => void; onDelete?: () => void; animating?: 'active' | 'accept' | 'reject'; animatingTick?: number }
 type AutomataNode = Node<AutomataNodeData>
@@ -1430,6 +1431,14 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
       return { activeId: id, tabs: [...tabs, { id, mode: tabMode, title: resolvedTitle }] }
     })
   }, [])
+  // AI results arrive in the background, so they join the strip without taking focus from the tab in use.
+  const openAiResult: OpenAiResult = useCallback((tabMode, { graph, grammar, title }) => {
+    const id = crypto.randomUUID()
+    const saved = tabMode === 'cfg' ? { version: 1, mode: 'cfg', grammar: grammar ?? '', testString: '' } : graphToSavedEditor(tabMode, graph!)
+    try { localStorage.setItem(tabStorageKey(tabMode, id), JSON.stringify(saved)) } catch { /* the tab still opens, just unsaved */ }
+    setIndex(current => current && { ...current, tabs: [...current.tabs, { id, mode: tabMode, title }] })
+  }, [])
+  const ai = useAiBuilder(openAiResult)
   // State updaters must stay pure (React may invoke them more than once, e.g. under Strict Mode),
   // so side effects — localStorage, opening the rename dialog — run once here, outside setIndex.
   const closeTab = (id: string) => {
@@ -1462,15 +1471,18 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
           onDoubleClick={() => renameTab(tab.id)} title={`${tab.title} — double-click to rename`}>{tab.title}</button>
         {index.tabs.length > 1 && <button type="button" className="tab-close" aria-label={`Close ${tab.title}`} onClick={() => closeTab(tab.id)}><X size={12} /></button>}
       </div>)}
+      {ai.chips}
       <button type="button" className="tab-add is-dfa" aria-label="New DFA tab" title="New DFA tab" onClick={() => openTab('dfa')}>+ DFA</button>
       <button type="button" className="tab-add is-nfa" aria-label="New NFA tab" title="New NFA tab" onClick={() => openTab('nfa')}>+ NFA</button>
       <button type="button" className="tab-add is-pda" aria-label="New PDA tab" title="New PDA tab" onClick={() => openTab('pda')}>+ PDA</button>
       <button type="button" className="tab-add is-cfg" aria-label="New CFG tab" title="New grammar tab" onClick={() => openTab('cfg')}>+ CFG</button>
+      {ai.button}
     </div>
     {activeTab.mode === 'cfg'
       ? <GrammarLab key={activeTab.id} saveKey={tabStorageKey('cfg', activeTab.id)} tabTitle={activeTab.title} onConvert={openTab} />
       : <ReactFlowProvider key={activeTab.id}><AutomataLab mode={activeTab.mode} saveKey={tabStorageKey(activeTab.mode, activeTab.id)} tabTitle={activeTab.title} onConvert={openTab} /></ReactFlowProvider>}
     {dialog && <Dialog state={dialog} onClose={() => setDialog(null)} />}
+    {ai.dialog}
   </div>
 }
 
