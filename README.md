@@ -23,9 +23,18 @@ A visual DFA / NFA / PDA / CFG workbench that runs entirely in your browser.
 
 ## What is it?
 
-Think of a whiteboard for **automata theory**. You drag states onto a canvas, click to connect them, and label the arrows with characters. Then type a string and **watch it move through the machine** step by step until it is accepted or rejected.
+Think of a whiteboard for **automata theory**. You drag states onto a canvas, click to connect them, and label the arrows. Then type a string and **watch it move through the machine** step by step until it is accepted or rejected. For grammars you type the rules instead, and see the parse tree grow.
 
-It's built for students learning formal languages, TAs who need a quick example, and anyone who wants to check a homework DFA before handing it in.
+It's built for students learning formal languages, TAs who need a quick example, and anyone who wants to check a homework DFA, PDA or grammar before handing it in.
+
+There are four workspaces. They all open as tabs in one window, so you can keep a grammar next to the PDA you built from it.
+
+| Workspace | Open it | What you do there |
+| --- | --- | --- |
+| **DFA** | [`/dfa`](https://xiaogao0616.github.io/lumina/dfa/) | Draw a deterministic automaton, find missing transitions, complete it with a sink, minimize it |
+| **NFA** | [`/nfa`](https://xiaogao0616.github.io/lumina/nfa/) | Use ε-moves and branching, build one from a regex, convert it to a DFA |
+| **PDA** | [`/pda`](https://xiaogao0616.github.io/lumina/pda/) | Put stack rules on the arrows and watch the stack change move by move |
+| **CFG** | [`/cfg`](https://xiaogao0616.github.io/lumina/cfg/) | Write rules as text, get a parse tree and leftmost derivation, convert to a PDA |
 
 ## ✨ Features
 
@@ -138,7 +147,7 @@ npm run dev        # → http://localhost:3000
 ```
 
 <details>
-<summary><b>A 30-second walkthrough</b></summary>
+<summary><b>Walkthrough: regex → NFA → minimal DFA</b></summary>
 
 1. Open **NFA** and pick **NFA tools → Regex → NFA…**
 2. Type `a(b|c)*d` and press **Generate**.
@@ -147,6 +156,45 @@ npm run dev        # → http://localhost:3000
 5. In that tab, use **DFA tools → Minimize** to see how small the machine can get.
 
 </details>
+
+<details>
+<summary><b>Walkthrough: watch a PDA use its stack</b></summary>
+
+1. Open **PDA**. It starts with a machine for `aⁿbⁿ`.
+2. Enter `aabb` and press **Run animated**. The stack panel in the corner shows `$` go on first, then one `a` per `a` read, then one popped per `b`.
+3. Try `aab`. The run reads every character but ends with an `a` still on the stack, so it never reaches the accept state.
+4. Click an arrow to add or remove rules. Leave **Read**, **Pop** or **Push** blank for ε.
+5. **PDA tools → Example: Even palindromes wwᴿ** loads a nondeterministic PDA. Open the diagnostics pill above the canvas to see the rule pairs that branch.
+
+</details>
+
+<details>
+<summary><b>Walkthrough: from a grammar to a PDA</b></summary>
+
+1. Open **CFG** and pick **CFG tools → Example: Arithmetic expressions**.
+2. Enter `x+x*x` and press **Run animated**. The parse tree grows in the same order as the leftmost derivation on the right.
+3. Press **Generate 5 strings** a few times. Each click shows the next five, shortest first, and starts over when the list runs out.
+4. **CFG tools → Convert to PDA** opens the equivalent PDA in a new tab. Run `x+x*x` there too and watch the stack.
+
+</details>
+
+## 📐 Notation
+
+The PDA and CFG workspaces follow the conventions in Sipser's *Introduction to the Theory of Computation*.
+
+**PDA rules** are written `a, X → YZ`: read `a`, pop `X`, push `YZ`.
+- Any of the three parts can be ε, which means "don't read", "don't pop" or "push nothing".
+- The pushed string's first character ends up on top, so pushing `YZ` leaves `Y` above `Z`.
+- The stack starts empty. Most machines begin with `ε, ε → $` to mark the bottom.
+- A string is accepted when all of it has been read and some run is in an accepting state. The stack doesn't have to be empty.
+- Runs are searched breadth-first with a cap on stack depth, so an ε-loop that keeps pushing can't freeze the page. If the cap is hit, the result says so.
+
+**Grammars** are written one or more rules per line, like `S → aSb | ε`.
+- `->` and `::=` work as well as `→`. The toolbar has buttons for `→`, `ε` and `|`.
+- Nonterminals are single uppercase letters `A`–`Z`. Every other character is a terminal, and spaces are ignored.
+- `ε` or an empty alternative is the empty string.
+- The first rule's left side is the start symbol. Another line for the same letter adds more alternatives.
+- Lines starting with `#` or `//` are comments.
 
 ## 🧠 Under the hood
 
@@ -160,7 +208,7 @@ All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate 
 | `regex-to-nfa.ts` | Thompson construction for a small regex dialect |
 | `automata-dfa.ts` | DFA rules: conflicts, missing transitions, sink completion |
 | `path-animation.ts` | Enumerates the walk(s) a string takes, for the animation |
-| `accepted-strings.ts` | Shortest-first search for accepted examples |
+| `accepted-strings.ts` | Lists accepted strings in shortlex order, and pages through them five at a time |
 | `graph-svg.ts` | Standalone SVG export using the same edge routing as the canvas |
 | `pda.ts` | PDA rules, a bounded breadth-first run with the stack at every move, examples, branching |
 | `cfg.ts` | Grammar parsing and checks, Earley membership with a parse tree, string generation, CFG → PDA |
