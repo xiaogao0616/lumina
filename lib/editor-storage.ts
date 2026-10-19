@@ -4,7 +4,9 @@ import {
   type AutomatonGraph,
   type AutomatonMode,
   type StateKind,
+  type TabMode,
 } from './automaton-graph'
+import { parsePdaRule } from './pda'
 
 export const LEGACY_EDITOR_STORAGE_KEY = 'automata-lab.editor.v1'
 export const NFA_STORAGE_KEY = 'automata-lab.nfa.v1'
@@ -37,7 +39,8 @@ const kind = (value: unknown): value is StateKind => value === 'start' || value 
 const character = (value: unknown): value is string => text(value) && Array.from(value).length === 1 && !!value.trim()
 const unique = (values: unknown[]) => new Set(values).size === values.length
 const finiteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value)
-const mode = (value: unknown): value is AutomatonMode => value === 'dfa' || value === 'nfa'
+const mode = (value: unknown): value is AutomatonMode => value === 'dfa' || value === 'nfa' || value === 'pda'
+const tabMode = (value: unknown): value is TabMode => mode(value) || value === 'cfg'
 
 function fail(): never {
   throw new Error('Invalid or unsupported local save')
@@ -71,13 +74,21 @@ function readNodes(raw: unknown, allowAccepting: boolean) {
   return nodes
 }
 
-function readEdges(raw: unknown, nodeIds: Set<string>, symbols: string[], allowEpsilon: boolean) {
+// A PDA edge holds rules (see lib/pda.ts) instead of characters; each rule may only read declared characters.
+function pdaRuleAllowed(symbol: unknown, symbols: string[]) {
+  const rule = text(symbol) ? parsePdaRule(symbol) : null
+  return !!rule && (!rule.input || symbols.includes(rule.input))
+}
+
+function readEdges(raw: unknown, nodeIds: Set<string>, symbols: string[], savedMode: AutomatonMode) {
   if (!Array.isArray(raw)) return fail()
+  const allowed = (symbol: unknown) => savedMode === 'pda' ? pdaRuleAllowed(symbol, symbols)
+    : (savedMode === 'nfa' && symbol === 'ε') || symbols.includes(symbol as string)
   const edges = raw.map(edge => {
     if (!record(edge) || !text(edge.id) || !edge.id || !text(edge.source) || !text(edge.target)
       || !nodeIds.has(edge.source) || !nodeIds.has(edge.target) || !Array.isArray(edge.symbols)
       || !unique(edge.symbols)
-      || !edge.symbols.every(symbol => (allowEpsilon && symbol === 'ε') || symbols.includes(symbol))) return fail()
+      || !edge.symbols.every(allowed)) return fail()
     return { id: edge.id, source: edge.source, target: edge.target, symbols: edge.symbols as string[] }
   })
   if (!unique(edges.map(edge => edge.id))) return fail()
@@ -127,8 +138,7 @@ export function readSavedEditor(raw: string, expectedMode?: AutomatonMode): Save
   const categories = readCategories(value.categories)
   const nextIndices = readNextIndices(value.nextIndices, categories)
   const nodes = readNodes(value.nodes, true)
-  const allowEpsilon = savedMode === 'nfa'
-  const edges = readEdges(value.edges, new Set(nodes.map(node => node.id)), symbols, allowEpsilon)
+  const edges = readEdges(value.edges, new Set(nodes.map(node => node.id)), symbols, savedMode)
   return { version: 2, mode: savedMode, nodes, edges, categories, nextIndices, symbols, testString: value.testString }
 }
 
@@ -174,17 +184,26 @@ export function savedEditorHasContent(raw: string | null): boolean {
   }
 }
 
-// One browser-tab-style strip shared by both modes — a tab can be either a DFA or an NFA.
-// Each tab's own graph lives at its own tabStorageKey; this index just tracks which tabs
+/** A CFG tab's save: the grammar exactly as typed, plus the test input. */
+export type SavedGrammar = { version: 1; mode: 'cfg'; grammar: string; testString: string }
+
+export function readSavedGrammar(raw: string): SavedGrammar {
+  const value: unknown = JSON.parse(raw)
+  if (!record(value) || value.version !== 1 || value.mode !== 'cfg' || !text(value.grammar) || !text(value.testString)) return fail()
+  return { version: 1, mode: 'cfg', grammar: value.grammar, testString: value.testString }
+}
+
+// One browser-tab-style strip shared by every mode — a tab can be a DFA, NFA, PDA or CFG.
+// Each tab's own save lives at its own tabStorageKey; this index just tracks which tabs
 // exist, their mode and title, and which one is active.
-export type SavedTab = { id: string; mode: AutomatonMode; title: string }
+export type SavedTab = { id: string; mode: TabMode; title: string }
 export type TabsIndex = { activeId: string; tabs: SavedTab[] }
 
 export function tabsIndexKey(): string {
   return 'automata-lab.tabs-index.v1'
 }
 
-export function tabStorageKey(mode: AutomatonMode, tabId: string): string {
+export function tabStorageKey(mode: TabMode, tabId: string): string {
   return `automata-lab.${mode}.tab.${tabId}.v1`
 }
 
@@ -192,7 +211,7 @@ export function readTabsIndex(raw: string): TabsIndex {
   const value: unknown = JSON.parse(raw)
   if (!record(value) || !text(value.activeId) || !value.activeId || !Array.isArray(value.tabs)) return fail()
   const tabs = value.tabs.map(tab => {
-    if (!record(tab) || !text(tab.id) || !tab.id || !mode(tab.mode) || !text(tab.title) || !tab.title.trim()) return fail()
+    if (!record(tab) || !text(tab.id) || !tab.id || !tabMode(tab.mode) || !text(tab.title) || !tab.title.trim()) return fail()
     return { id: tab.id, mode: tab.mode, title: tab.title }
   })
   if (!tabs.length || !unique(tabs.map(tab => tab.id)) || !tabs.some(tab => tab.id === value.activeId)) return fail()

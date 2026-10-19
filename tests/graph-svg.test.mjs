@@ -52,3 +52,10 @@ test('labels and ids are XML-escaped', () => {
   assert.doesNotMatch(svg, /<a>&"'/)
   assert.match(svg, /&lt;a&gt;&amp;&quot;&apos;/)
 })
+
+test('a caption with line breaks stacks one line per rule', () => {
+  const graph = { symbols: ['a'], states: [{ id: 's', label: 's', kind: 'start', position: { x: 0, y: 0 }, color: '#67c9ff' }],
+    transitions: [{ id: 'e', source: 's', target: 's', symbols: ['a,ε→A', 'ε,A→ε'] }] }
+  const svg = graphToSvg(graph, undefined, rules => rules.join('\n'))
+  assert.ok(svg.includes('>a,ε→A</text>') && svg.includes('>ε,A→ε</text>'))
+})

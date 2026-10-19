@@ -13,15 +13,26 @@ function escapeXml(value: string): string {
   return value.replace(/[&<>"']/g, char => table[char])
 }
 
-function svgLabel(point: { x: number; y: number }, text: string, color: string): string {
-  const width = Math.max(18, Array.from(text).length * 8 + 10)
-  return `<g transform="translate(${point.x - width / 2} ${point.y - 10})">` +
-    `<rect width="${width}" height="20" rx="4" fill="#17171c" stroke="${color}" stroke-width="1"/>` +
-    `<text x="${width / 2}" y="10" fill="${color}" font-size="12" text-anchor="middle" dominant-baseline="central">${escapeXml(text)}</text></g>`
+const LINE_HEIGHT = 16
+
+/**
+ * A boxed edge caption; a caption with line breaks (one PDA rule per line) stacks its lines. On a
+ * self-loop a tall caption grows upward from the loop's top so it doesn't cover the state.
+ */
+function svgLabel(point: { x: number; y: number }, text: string, color: string, growUp = false): string {
+  const lines = text.split('\n')
+  const width = Math.max(18, Math.max(...lines.map(line => Array.from(line).length)) * 8 + 10)
+  const height = 4 + lines.length * LINE_HEIGHT
+  const top = growUp && lines.length > 1 ? point.y + 10 - height : point.y - height / 2
+  return `<g transform="translate(${point.x - width / 2} ${top})">` +
+    `<rect width="${width}" height="${height}" rx="4" fill="#17171c" stroke="${color}" stroke-width="1"/>` +
+    lines.map((line, index) => `<text x="${width / 2}" y="${2 + LINE_HEIGHT * (index + 0.5)}" fill="${color}" font-size="12" text-anchor="middle" dominant-baseline="central">${escapeXml(line)}</text>`).join('') +
+    `</g>`
 }
 
 /** A static, self-contained SVG rendering of the graph. Edge routing reuses the same geometry as the on-canvas editor. */
-export function graphToSvg(graph: AutomatonGraph, background = '#111116'): string {
+export function graphToSvg(graph: AutomatonGraph, background = '#111116',
+  caption: (symbols: string[]) => string = symbols => symbols.length ? symbols.join(', ') : '∅'): string {
   if (graph.states.length === 0) {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120"><rect width="220" height="120" fill="${background}"/>` +
       `<text x="110" y="60" fill="#8a8a96" font-family="monospace" font-size="12" text-anchor="middle">Empty graph</text></svg>`
@@ -51,7 +62,7 @@ export function graphToSvg(graph: AutomatonGraph, background = '#111116'): strin
     if (!route) continue
     const color = graph.states.find(state => state.id === transition.source)?.color ?? '#9292a0'
     parts.push(`<path d="${route.path}" fill="none" stroke="${color}" stroke-width="1.8" marker-end="url(#${markerFor(color)})"/>`)
-    parts.push(svgLabel(route.label, transition.symbols.length ? transition.symbols.join(', ') : '∅', color))
+    parts.push(svgLabel(route.label, caption(transition.symbols), color, self))
   }
 
   for (const state of graph.states) {

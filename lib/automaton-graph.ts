@@ -1,4 +1,6 @@
-export type AutomatonMode = 'dfa' | 'nfa'
+export type AutomatonMode = 'dfa' | 'nfa' | 'pda'
+/** What a workspace tab can hold: an automaton on the canvas, or a grammar written as text. */
+export type TabMode = AutomatonMode | 'cfg'
 export type StateKind = 'start' | 'state' | 'accept'
 
 export const SOURCE_COLORS = ['#67c9ff', '#ffb86b', '#c4a0ff', '#64dcb4', '#f48fb1', '#e5d36f', '#91a8ff', '#ed9c78']
