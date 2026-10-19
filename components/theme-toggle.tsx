@@ -16,8 +16,10 @@ export function ThemeToggle() {
     try { localStorage.setItem(THEME_STORAGE_KEY, next) } catch { /* private mode: the choice lasts this page only */ }
     setTheme(next)
   }
-  const label = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
-  return <button type="button" className="icon-button theme-toggle" onClick={toggle} title={label} aria-label={label}>
-    {theme === 'dark' ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
+  const dark = theme === 'dark'
+  return <button type="button" role="switch" aria-checked={dark} className={`theme-switch ${dark ? 'is-dark' : ''}`} onClick={toggle}
+    title={dark ? 'Dark theme on. Click for light' : 'Light theme on. Click for dark'} aria-label="Dark theme">
+    <span className="theme-switch-knob" aria-hidden="true" />
+    <Sun size={14} aria-hidden="true" /><Moon size={14} aria-hidden="true" />
   </button>
 }

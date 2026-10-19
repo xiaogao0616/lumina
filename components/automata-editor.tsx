@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import {
   Background,
+  BackgroundVariant,
   BaseEdge,
   Controls,
   EdgeLabelRenderer,
@@ -359,7 +360,8 @@ function RoutedEdge({ id, source, target, style, data, label, selected }: EdgePr
     : null
   useEffect(() => { if (route?.side) preferredSide.current = route.side }, [route?.side])
   if (!route || !sourceNode || !targetNode) return null
-  const color = inkColor(data?.color ?? String(style?.stroke ?? '#9292a0'))
+  const rawColor = data?.color ?? String(style?.stroke ?? '#9292a0')
+  const color = inkColor(rawColor)
   const emphasized = data?.emphasized || selected
   const opacity = data?.dimmed ? 0.18 : 1
   const caption = label
@@ -376,16 +378,15 @@ function RoutedEdge({ id, source, target, style, data, label, selected }: EdgePr
       <path d="M 0 0 L 10 5 L 0 10 Z" style={{ fill: color }} stroke="none" />
     </marker></defs>
     <BaseEdge id={id} path={route.path} markerEnd={`url(#${markerId})`}
-      style={{ ...style, stroke: color, opacity, strokeWidth: emphasized || data?.animating ? 3 : 1.8 }} interactionWidth={24} />
+      style={{ ...style, stroke: color, opacity, strokeWidth: emphasized || data?.animating ? 3.5 : 2.2 }} interactionWidth={24} />
     {data?.animating && <EdgeLabelRenderer><div key={data.animatingTick} className="edge-pulse" style={{
       transform: `translate(-50%, -50%) translate(${labelPoint.x}px,${labelPoint.y}px)`, color,
     }} aria-hidden="true" /></EdgeLabelRenderer>}
-    {caption != null && <EdgeLabelRenderer><div className={`edge-label ${multiline ? 'is-multiline' : ''}`} style={{
-      color: data?.dimmed ? `color-mix(in srgb, ${color} 35%, var(--label-fill))` : color,
-      borderColor: 'currentColor', zIndex: data?.focused ? 20 : 1,
+    {caption != null && <EdgeLabelRenderer><div className={`edge-label ${multiline ? 'is-multiline' : ''} ${data?.dimmed ? 'is-dimmed' : ''}`} style={{
+      '--edge-color': color, '--edge-raw': rawColor, zIndex: data?.focused ? 20 : 1,
       // A tall caption on a self-loop grows upward from the top of the loop instead of covering the state.
       transform: `translate(-50%, ${multiline && source === target ? 'calc(-100% + 10px)' : '-50%'}) translate(${labelPoint.x}px,${labelPoint.y}px)`
-    }}>{caption}</div></EdgeLabelRenderer>}
+    } as CSSProperties}>{caption}</div></EdgeLabelRenderer>}
     {route.blocked && <EdgeLabelRenderer><div className="edge-route-warning" style={{ transform: `translate(-50%, 16px) translate(${labelPoint.x}px,${labelPoint.y}px)` }}>Move a state to clear this path</div></EdgeLabelRenderer>}
     {selected && !data?.editingDisabled && <EdgeLabelRenderer><div className="transition-editor-anchor" style={{
       transform: `translate(-50%, 12px) translate(${route.label.x}px,${route.label.y}px)`
@@ -1289,7 +1290,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
           {isDfa && <span className={`stat-pill ${testPassed ? 'is-good' : ''}`} title="Whether Validate DFA has confirmed this is a standard DFA since it last changed — not whether a particular test string was accepted">Validated <b>{testPassed ? 'Yes' : 'No'}</b></span>}
         </div>
         <div className="toolbar-actions">{selectedStart && <button className="tool-button" type="button" onClick={toggleStartAccepting} aria-pressed={!!selectedStart.data.accepting}>◎ <span>{selectedStart.data.accepting ? 'Start accepts' : 'Start rejects ε'}</span></button>}</div>
-      </div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }} onMouseMove={onPaneMouseMove}>{reshapeTick > 0 && <div key={reshapeTick} className="reshape-flash" aria-hidden="true" />}{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} color={sourceColor(connectingNode)} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, data: { ...node.data, related: node.id === focusedEdge?.source || node.id === focusedEdge?.target, onRename: () => renameNode(node.id), onDelete: () => deleteNode(node.id), animating: activeFrame && node.id === activeFrame.stateId ? activeKind ?? undefined : undefined, animatingTick: animation?.tick }, selected: node.id === selectedId || node.id === connectingId, draggable: true }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeClick={onEdgeClick} onEdgeMouseEnter={onEdgeMouseEnter} onEdgeMouseLeave={onEdgeMouseLeave} onNodeClick={onNodeClick} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop} autoPanOnNodeDrag={false} nodeDragThreshold={5} nodeClickDistance={5} onNodesDelete={onNodesDelete} deleteKeyCode={['Backspace', 'Delete']} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={fitViewOptions} minZoom={0.35} maxZoom={2}><Background gap={24} size={1.4} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => inkColor(sourceColor(node as AutomataNode))} maskColor="var(--minimap-mask)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target (or source for a loop) · Drag to move · Esc to cancel</div> : nodes.length === 0 ? <div className="canvas-empty-hint">Drag a state in from the sidebar to get started</div> : <div className="canvas-hint">Click a state to connect · Drag a state to move</div>}
+      </div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }} onMouseMove={onPaneMouseMove}>{reshapeTick > 0 && <div key={reshapeTick} className="reshape-flash" aria-hidden="true" />}{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} color={sourceColor(connectingNode)} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, data: { ...node.data, related: node.id === focusedEdge?.source || node.id === focusedEdge?.target, onRename: () => renameNode(node.id), onDelete: () => deleteNode(node.id), animating: activeFrame && node.id === activeFrame.stateId ? activeKind ?? undefined : undefined, animatingTick: animation?.tick }, selected: node.id === selectedId || node.id === connectingId, draggable: true }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeClick={onEdgeClick} onEdgeMouseEnter={onEdgeMouseEnter} onEdgeMouseLeave={onEdgeMouseLeave} onNodeClick={onNodeClick} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop} autoPanOnNodeDrag={false} nodeDragThreshold={5} nodeClickDistance={5} onNodesDelete={onNodesDelete} deleteKeyCode={['Backspace', 'Delete']} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={fitViewOptions} minZoom={0.35} maxZoom={2}><Background variant={BackgroundVariant.Lines} gap={28} lineWidth={1} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => inkColor(sourceColor(node as AutomataNode))} maskColor="var(--minimap-mask)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target (or source for a loop) · Drag to move · Esc to cancel</div> : nodes.length === 0 ? <div className="canvas-empty-hint">Drag a state in from the sidebar to get started</div> : <div className="canvas-hint">Click a state to connect · Drag a state to move</div>}
         {isPda && <StackPanel step={stackStep} index={stackIndex} total={stackSteps?.length ?? 0} inputLength={Array.from(testString).length} />}
       </div>
         <section className="string-test-panel" aria-label="Alphabet and string test" onKeyDown={event => event.stopPropagation()}>

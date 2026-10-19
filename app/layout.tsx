@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Bricolage_Grotesque, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 import './globals.css'
 
-const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' })
+const sans = Space_Grotesk({ subsets: ['latin'], variable: '--font-sans', display: 'swap' })
+const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-display', display: 'swap' })
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' })
 
 // Next.js applies basePath to <Link>/next/image but not to URLs written into metadata.
@@ -51,7 +52,7 @@ export default function RootLayout({
         {/* Sets the theme before first paint so a dark-theme reload does not flash light. */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`antialiased ${sans.variable} ${mono.variable}`}>{children}</body>
+      <body className={`antialiased ${sans.variable} ${display.variable} ${mono.variable}`}>{children}</body>
     </html>
   )
 }
