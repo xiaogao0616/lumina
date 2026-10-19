@@ -2,9 +2,9 @@
 
 # ⚡ Automata Lab
 
-**Draw finite automata. Watch strings walk through them. Convert, minimize, repeat.**
+**Draw finite and pushdown automata, write grammars. Watch strings walk through them. Convert, minimize, repeat.**
 
-A visual DFA / NFA workbench that runs entirely in your browser.
+A visual DFA / NFA / PDA / CFG workbench that runs entirely in your browser.
 
 [![Live demo](https://img.shields.io/badge/▶_Live_demo-xiaogao0616.github.io%2Flumina-8b5cf6?style=for-the-badge)](https://xiaogao0616.github.io/lumina/)
 
@@ -12,7 +12,7 @@ A visual DFA / NFA workbench that runs entirely in your browser.
 ![React](https://img.shields.io/badge/React_19-20232a?logo=react&logoColor=61dafb)
 ![React Flow](https://img.shields.io/badge/React_Flow-ff0072?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-63_passing-34d399)
+![Tests](https://img.shields.io/badge/tests-84_passing-34d399)
 ![No backend](https://img.shields.io/badge/backend-none-67e8f9)
 
 <img src="docs/screenshot-nfa.jpg" alt="Automata Lab: an NFA with ε-moves and branching, with generated accepted strings" width="100%">
@@ -67,7 +67,7 @@ It's built for students learning formal languages, TAs who need a quick example,
 <td valign="top">
 
 ### 💾 Keep
-- Browser-style **tabs**: mix as many DFAs and NFAs as you like
+- Browser-style **tabs**: mix as many DFAs, NFAs, PDAs and grammars as you like
 - Conversions always open a **new tab** and never overwrite your work
 - Every tab is saved automatically in your browser
 - Import / export **JSON**
@@ -75,7 +75,35 @@ It's built for students learning formal languages, TAs who need a quick example,
 
 </td>
 </tr>
+<tr>
+<td valign="top">
+
+### 📚 Pushdown automata
+- Rules on each arrow read a character, pop a symbol and push a string (`a, X → YZ`), any part ε
+- **Stack panel** follows the animated run move by move
+- Diagnostics list the rule pairs that make the PDA nondeterministic
+- Examples: `aⁿbⁿ` and even palindromes `wwᴿ`
+
+</td>
+<td valign="top">
+
+### ✍️ Context-free grammars
+- Write rules as text: `S → aSb | ε`
+- Test a string and get its **parse tree** and **leftmost derivation**, animated step by step
+- Flags undefined, non-productive and unreachable nonterminals
+- **CFG → PDA** opens the equivalent PDA in a new tab
+
+</td>
+</tr>
 </table>
+
+<div align="center">
+<img src="docs/screenshot-pda.jpg" alt="A PDA for aⁿbⁿ mid-run, with the stack panel showing a on top of $" width="100%">
+<br><sub>The stack panel shows the stack after each move while a string runs through a PDA.</sub>
+<br><br>
+<img src="docs/screenshot-cfg.jpg" alt="The parse tree and leftmost derivation of x+x*x in an expression grammar" width="100%">
+<br><sub>A grammar tab: rules on the left, the parse tree and leftmost derivation of the tested string on the right.</sub>
+</div>
 
 ## 🧭 How the pieces fit
 
@@ -87,6 +115,8 @@ flowchart LR
     D -- complete with sink --> C["Complete DFA"]
     C -- minimize --> M["Minimal DFA"]
     N & D & C & M -. run a string .-> T{{"Accepted / Rejected"}}
+    G["CFG<br/>S → aSb | ε"] -- standard construction --> P["PDA<br/>stack"]
+    G & P -. run a string .-> T
 ```
 
 <div align="center">
@@ -132,10 +162,12 @@ All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate 
 | `path-animation.ts` | Enumerates the walk(s) a string takes, for the animation |
 | `accepted-strings.ts` | Shortest-first search for accepted examples |
 | `graph-svg.ts` | Standalone SVG export using the same edge routing as the canvas |
+| `pda.ts` | PDA rules, a bounded breadth-first run with the stack at every move, examples, branching |
+| `cfg.ts` | Grammar parsing and checks, Earley membership with a parse tree, string generation, CFG → PDA |
 | `editor-storage.ts` | Versioned, validated local saves and tab index |
 
 ```bash
-npm test           # 63 tests, node --test
+npm test           # 84 tests, node --test
 npm run typecheck  # route types + tsc --noEmit
 npm run build      # static export into out/
 ```

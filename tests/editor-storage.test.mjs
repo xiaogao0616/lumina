@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { loadTs } from './load-ts.mjs'
 
-const { readSavedEditor: read, graphToSavedEditor, readTabsIndex, tabsIndexKey, tabStorageKey, legacyModeTabsIndexKey, readLegacyModeTabsIndex } = loadTs('editor-storage.ts')
+const { readSavedEditor: read, graphToSavedEditor, readTabsIndex, tabsIndexKey, tabStorageKey, legacyModeTabsIndexKey, readLegacyModeTabsIndex, readSavedGrammar } = loadTs('editor-storage.ts')
 const { builtInCategories, defaultNextIndices } = loadTs('automaton-graph.ts')
 
 const base = {
@@ -89,4 +89,24 @@ test('readLegacyModeTabsIndex parses the old per-mode format for migration', () 
   const legacy = { activeId: 'a', tabs: [{ id: 'a', title: 'DFA 1' }] }
   assert.deepEqual(readLegacyModeTabsIndex(JSON.stringify(legacy)), legacy)
   assert.throws(() => readLegacyModeTabsIndex('{'))
+})
+
+test('pda saves keep rules on edges, and only rules that read declared characters', () => {
+  const pda = { ...structuredClone(base), mode: 'pda', symbols: ['a', 'b'] }
+  pda.nodes = [{ id: 'x', type: 'start', position: { x: 0, y: 0 }, data: { label: 's', kind: 'start', color: '#67c9ff' } }]
+  pda.edges = [{ id: 'e', source: 'x', target: 'x', symbols: ['ε,ε→$', 'a,ε→A', 'b,A→ε'] }]
+  assert.deepEqual(read(JSON.stringify(pda), 'pda'), pda)
+  for (const symbols of [['c,ε→ε'], ['a'], ['a,AB→ε']]) {
+    assert.throws(() => read(JSON.stringify({ ...pda, edges: [{ ...pda.edges[0], symbols }] })))
+  }
+  assert.throws(() => read(JSON.stringify(pda), 'nfa'))
+})
+
+test('cfg saves and tabs of every mode', () => {
+  const saved = { version: 1, mode: 'cfg', grammar: 'S → aSb | ε', testString: 'ab' }
+  assert.deepEqual(readSavedGrammar(JSON.stringify(saved)), saved)
+  for (const bad of [{ ...saved, mode: 'pda' }, { ...saved, grammar: 3 }, { ...saved, version: 2 }]) assert.throws(() => readSavedGrammar(JSON.stringify(bad)))
+  const index = { activeId: 'c', tabs: [{ id: 'p', mode: 'pda', title: 'PDA 1' }, { id: 'c', mode: 'cfg', title: 'CFG 1' }] }
+  assert.deepEqual(readTabsIndex(JSON.stringify(index)), index)
+  assert.equal(tabStorageKey('cfg', 'c'), 'automata-lab.cfg.tab.c.v1')
 })
