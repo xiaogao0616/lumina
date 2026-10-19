@@ -22,3 +22,15 @@
 .modal-box p.ai-error { margin-top: 12px; color: var(--danger); }
 .modal-button:disabled { opacity: .5; cursor: not-allowed; }
 .modal-box p.ai-note a { color: inherit; text-decoration: underline; }
+
+/* A run in progress (or failed) sits in the tab strip as a greyed placeholder tab. */
+.tab-chip.ai-job > button:first-child { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; }
+.tab-chip.ai-job.is-running { opacity: .6; border-style: dashed; }
+.tab-chip.ai-job.is-running > button:first-child { cursor: progress; }
+.tab-chip.ai-job.is-failed { color: var(--danger); }
+.tab-chip.ai-job.is-failed > button:first-child { color: var(--danger); }
+.ai-job-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-job-state { color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 500; }
+.ai-spin { flex-shrink: 0; animation: ai-spin 1s linear infinite; }
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ai-spin { animation: none; } }

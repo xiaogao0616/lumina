@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Camera, ImageUp, Sparkles, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Camera, ImageUp, LoaderCircle, Sparkles, TriangleAlert, X } from 'lucide-react'
 import type { AutomatonGraph, TabMode } from '../lib/automaton-graph'
 import {
   AI_SETTINGS_KEY,
@@ -34,29 +34,37 @@ async function readImage(file: File): Promise<{ image: AiImage; preview: string 
   return { image: { mediaType: 'image/jpeg', base64: preview.slice(preview.indexOf(',') + 1) }, preview }
 }
 
-function AiBuilderDialog({ defaultTarget, onResult, onClose }: { defaultTarget: AiTarget; onResult: OpenAiResult; onClose: () => void }) {
-  const [source, setSource] = useState<'text' | 'photo'>('text')
-  const [target, setTarget] = useState<AiTarget>(defaultTarget)
-  const [description, setDescription] = useState('')
-  const [photo, setPhoto] = useState<{ image: AiImage; preview: string } | null>(null)
+/** What one generate/recognize run was asked for, kept so a failed run can be reopened and retried. */
+type AiRequest = { source: 'text' | 'photo'; target: AiTarget; description: string; photo: { image: AiImage; preview: string } | null }
+type AiJob = { id: string; label: string; request: AiRequest; started: number; status: 'running' | 'failed'; error?: string; controller: AbortController }
+
+function describeFailure(caught: unknown): string {
+  const message = caught instanceof Error ? caught.message : String(caught)
+  return message === 'Failed to fetch'
+    ? 'Could not reach the AI service. Check the base URL, and that this provider allows calls from a browser.'
+    : message
+}
+
+function jobLabel(request: AiRequest): string {
+  const text = request.description.trim().replace(/\s+/g, ' ')
+  if (request.source === 'photo') return text ? `Photo: ${text}` : 'Photo'
+  return text.length > 18 ? `${text.slice(0, 18)}…` : text
+}
+
+function AiBuilderDialog({ initial, onStart, onClose }: {
+  initial: { request?: AiRequest; error?: string }; onStart: (request: AiRequest, settings: AiSettings) => void; onClose: () => void
+}) {
+  const [source, setSource] = useState<'text' | 'photo'>(initial.request?.source ?? 'text')
+  const [target, setTarget] = useState<AiTarget>(initial.request?.target ?? 'auto')
+  const [description, setDescription] = useState(initial.request?.description ?? '')
+  const [photo, setPhoto] = useState<{ image: AiImage; preview: string } | null>(initial.request?.photo ?? null)
   const [settings, setSettings] = useState<AiSettings>(() => {
     try { return readAiSettings(localStorage.getItem(AI_SETTINGS_KEY)) } catch { return readAiSettings(null) }
   })
   const [settingsOpen, setSettingsOpen] = useState(!settings.apiKey)
-  const [busy, setBusy] = useState(false)
-  const [elapsed, setElapsed] = useState(0)
-  useEffect(() => {
-    if (!busy) return
-    setElapsed(0)
-    const started = Date.now()
-    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000)
-    return () => clearInterval(timer)
-  }, [busy])
-  const [error, setError] = useState('')
-  const abortRef = useRef<AbortController | null>(null)
+  const [error, setError] = useState(initial.error ?? '')
   const cameraRef = useRef<HTMLInputElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  useEffect(() => () => abortRef.current?.abort(), [])
 
   const updateSettings = (patch: Partial<AiSettings>) => setSettings(current => {
     const next = { ...current, ...patch }
@@ -71,33 +79,16 @@ function AiBuilderDialog({ defaultTarget, onResult, onClose }: { defaultTarget: 
     try { setPhoto(await readImage(file)) } catch { setError('That file could not be read as an image.') }
   }
 
-  const canRun = !busy && !!settings.apiKey && (source === 'text' ? !!description.trim() : !!photo)
-  const run = async () => {
+  const canRun = !!settings.apiKey && (source === 'text' ? !!description.trim() : !!photo)
+  const run = () => {
     if (!canRun) return
-    setBusy(true)
-    setError('')
-    const controller = new AbortController()
-    abortRef.current = controller
-    try {
-      const reply = await callModel(settings, systemPrompt(), userPrompt(target, description, source === 'photo'), source === 'photo' ? photo!.image : null, controller.signal)
-      const result = specToResult(extractJson(reply), target)
-      if (!result.ok) { setError(result.message); return }
-      onResult(result.mode, result.mode === 'cfg' ? { grammar: result.grammar, title: result.title } : { graph: result.graph, title: result.title })
-      onClose()
-    } catch (caught) {
-      if (controller.signal.aborted) return
-      const message = caught instanceof Error ? caught.message : String(caught)
-      setError(message === 'Failed to fetch'
-        ? 'Could not reach the AI service. Check the base URL, and that this provider allows calls from a browser.'
-        : message)
-    } finally {
-      setBusy(false)
-    }
+    onStart({ source, target, description, photo: source === 'photo' ? photo : null }, settings)
+    onClose()
   }
 
-  return <div className="modal-overlay" role="presentation" onClick={busy ? undefined : onClose}>
+  return <div className="modal-overlay" role="presentation" onClick={onClose}>
     <div className="modal-box ai-builder" role="dialog" aria-modal="true" aria-labelledby="ai-builder-title" onClick={event => event.stopPropagation()}
-      onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape' && !busy) onClose() }}>
+      onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') onClose() }}>
       <h3 id="ai-builder-title"><Sparkles className="modal-icon" size={17} aria-hidden="true" /> Build with AI
         <button type="button" className="ai-close" aria-label="Close" onClick={onClose}><X size={14} /></button></h3>
       <div className="ai-segment" role="tablist" aria-label="Source">
@@ -124,7 +115,7 @@ function AiBuilderDialog({ defaultTarget, onResult, onClose }: { defaultTarget: 
       </div>}
       <textarea className="modal-input ai-textarea" value={description} rows={source === 'text' ? 4 : 2} onChange={event => setDescription(event.target.value)}
         placeholder={source === 'text' ? 'e.g. strings over {a, b} with an even number of a’s and ending in b' : 'Optional notes, e.g. “q2 is accepting, the label on the loop is b”'}
-        onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) void run() }} />
+        onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) run() }} />
       <details className="ai-settings" open={settingsOpen} onToggle={event => setSettingsOpen((event.target as HTMLDetailsElement).open)}>
         <summary>AI service{settings.apiKey ? '' : ' (add your API key)'}</summary>
         <label className="ai-field">Provider
@@ -149,22 +140,81 @@ function AiBuilderDialog({ defaultTarget, onResult, onClose }: { defaultTarget: 
       </details>
       {error && <p className="ai-error" role="alert">{error}</p>}
       <div className="modal-actions">
-        <button type="button" className="modal-button" onClick={() => busy ? abortRef.current?.abort() : onClose()}>Cancel</button>
-        <button type="button" className="modal-button is-primary" disabled={!canRun} onClick={() => void run()}>
-          {busy ? `Working… ${elapsed}s` : source === 'text' ? 'Generate' : 'Recognize'}
+        <button type="button" className="modal-button" onClick={onClose}>Cancel</button>
+        <button type="button" className="modal-button is-primary" disabled={!canRun} onClick={run}
+          title="Runs in the background: keep working while the new tab loads">
+          {source === 'text' ? 'Generate' : 'Recognize'}
         </button>
       </div>
     </div>
   </div>
 }
 
-/** The “✦ AI” button at the end of the tab strip; a successful result opens in a new tab. */
-export function AiBuilderButton({ defaultTarget, onResult }: { defaultTarget: AiTarget; onResult: OpenAiResult }) {
-  const [open, setOpen] = useState(false)
-  return <>
-    <button type="button" className="tab-add is-ai" aria-label="Build with AI" title="Generate from a description, or recognize a photo" onClick={() => setOpen(true)}>
-      <Sparkles size={12} aria-hidden="true" /> AI
+function JobChip({ job, onOpen, onCancel }: { job: AiJob; onOpen: () => void; onCancel: () => void }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (job.status !== 'running') return
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [job.status])
+  const running = job.status === 'running'
+  const seconds = Math.max(0, Math.floor((now - job.started) / 1000))
+  return <div className={`tab-chip ai-job is-${job.status}`}>
+    <button type="button" role="tab" aria-selected={false} onClick={onOpen} disabled={running}
+      title={running ? `Generating “${job.label}” in the background` : `${job.error} — click to edit and retry`}>
+      {running ? <LoaderCircle className="ai-spin" size={12} aria-hidden="true" /> : <TriangleAlert size={12} aria-hidden="true" />}
+      <span className="ai-job-label">{job.label}</span>
+      <span className="ai-job-state">{running ? `${seconds}s` : 'Failed'}</span>
     </button>
-    {open && <AiBuilderDialog defaultTarget={defaultTarget} onResult={onResult} onClose={() => setOpen(false)} />}
-  </>
+    <button type="button" className="tab-close" aria-label={running ? `Cancel ${job.label}` : `Dismiss ${job.label}`} onClick={onCancel}><X size={12} /></button>
+  </div>
+}
+
+/**
+ * The AI builder's pieces for the tab strip: the “✦ AI” button, a placeholder tab per run while
+ * the model works in the background (so the workspace stays usable), and the dialog. A finished
+ * run becomes a real tab through onResult; a failed one stays as a red placeholder that reopens
+ * the dialog with the same input and the error.
+ */
+export function useAiBuilder(onResult: OpenAiResult) {
+  const [jobs, setJobs] = useState<AiJob[]>([])
+  const [dialog, setDialog] = useState<{ request?: AiRequest; error?: string; jobId?: string } | null>(null)
+  const jobsRef = useRef(jobs)
+  jobsRef.current = jobs
+  useEffect(() => () => { for (const job of jobsRef.current) job.controller.abort() }, [])
+
+  const start = useCallback((request: AiRequest, settings: AiSettings) => {
+    const job: AiJob = { id: crypto.randomUUID(), label: jobLabel(request), request, started: Date.now(), status: 'running', controller: new AbortController() }
+    setJobs(current => [...current, job])
+    const fail = (error: string) => setJobs(current => current.map(item => item.id === job.id ? { ...item, status: 'failed', error } : item))
+    void (async () => {
+      try {
+        const reply = await callModel(settings, systemPrompt(), userPrompt(request.target, request.description, request.source === 'photo'),
+          request.photo?.image ?? null, job.controller.signal)
+        const result = specToResult(extractJson(reply), request.target)
+        if (!result.ok) return fail(result.message)
+        setJobs(current => current.filter(item => item.id !== job.id))
+        onResult(result.mode, result.mode === 'cfg' ? { grammar: result.grammar, title: result.title } : { graph: result.graph, title: result.title })
+      } catch (caught) {
+        if (!job.controller.signal.aborted) fail(describeFailure(caught))
+      }
+    })()
+  }, [onResult])
+  const remove = (job: AiJob) => {
+    job.controller.abort()
+    setJobs(current => current.filter(item => item.id !== job.id))
+  }
+
+  return {
+    chips: jobs.map(job => <JobChip key={job.id} job={job} onCancel={() => remove(job)}
+      onOpen={() => setDialog({ request: job.request, error: job.error, jobId: job.id })} />),
+    button: <button type="button" className="tab-add is-ai" aria-label="Build with AI" title="Generate from a description, or recognize a photo" onClick={() => setDialog({})}>
+      <Sparkles size={12} aria-hidden="true" /> AI
+    </button>,
+    dialog: dialog && <AiBuilderDialog initial={dialog} onClose={() => setDialog(null)} onStart={(request, settings) => {
+      const retried = dialog.jobId && jobsRef.current.find(job => job.id === dialog.jobId)
+      if (retried) remove(retried)
+      start(request, settings)
+    }} />,
+  }
 }
