@@ -12,7 +12,7 @@ A visual DFA / NFA / PDA / CFG workbench that runs entirely in your browser.
 ![React](https://img.shields.io/badge/React_19-20232a?logo=react&logoColor=61dafb)
 ![React Flow](https://img.shields.io/badge/React_Flow-ff0072?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-84_passing-34d399)
+![Tests](https://img.shields.io/badge/tests-89_passing-34d399)
 ![No backend](https://img.shields.io/badge/backend-none-67e8f9)
 
 <img src="docs/screenshot-nfa.jpg" alt="Automata Lab: an NFA with ε-moves and branching, with generated accepted strings" width="100%">
@@ -48,7 +48,7 @@ It's built for students learning formal languages, TAs who need a quick example,
 - **Run animated**: the string walks state by state, and NFA branches are tried one at a time
 - **Run instantly**: shows the verdict without the walk
 - 🎲 Fill in a random string from the alphabet in use
-- ✨ **Generate accepted strings**, shortest first
+- ✨ **Generate accepted strings**, shortest first; each click shows the next 5 and cycles back to the start
 - Live diagnostics: missing transitions, conflicts, ε-moves, branching
 
 </td>
@@ -167,7 +167,7 @@ All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate 
 | `editor-storage.ts` | Versioned, validated local saves and tab index |
 
 ```bash
-npm test           # 84 tests, node --test
+npm test           # 89 tests, node --test
 npm run typecheck  # route types + tsc --noEmit
 npm run build      # static export into out/
 ```

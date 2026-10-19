@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { createContext, useContext, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   ArrowRightLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CirclePlus, CircleQuestionMark, CircleX, Copy, Dices, FileDown,
-  FileUp, FolderOpen, GripVertical, ImageDown, Layers, ListChecks, Minimize2, Pencil, Play, Redo2, Regex, Sparkles, TextCursorInput,
+  FileUp, FolderOpen, GripVertical, ImageDown, Layers, ListChecks, Minimize2, Pencil, Play, Redo2, Regex, TextCursorInput,
   TriangleAlert, Trash2, Undo2, Wrench, X, Zap,
 } from 'lucide-react'
 import {
@@ -66,7 +66,7 @@ import {
   type TabsIndex,
 } from '../lib/editor-storage'
 import { copyAsNfa, nfaToDfa } from '../lib/nfa-to-dfa'
-import { findAcceptedStrings, randomTestString } from '../lib/accepted-strings'
+import { EXAMPLE_POOL_SIZE, findAcceptedStrings, randomTestString } from '../lib/accepted-strings'
 import { findAnimatedPaths, type PathAttempt } from '../lib/path-animation'
 import {
   buildPdaRule, countPdaRules, displayPdaRule, findPdaAcceptedStrings, parsePdaRule, pdaBranching, pdaEdgeCaption, pdaInputsInUse, runPda,
@@ -74,6 +74,7 @@ import {
 } from '../lib/pda'
 import { GrammarLab } from './grammar-editor'
 import { Dropdown, MenuItem } from './menus'
+import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 
 type AutomataNodeData = { label: string; kind: StateKind; color?: string; related?: boolean; accepting?: boolean; onRename?: () => void; onDelete?: () => void; animating?: 'active' | 'accept' | 'reject'; animatingTick?: number }
 type AutomataNode = Node<AutomataNodeData>
@@ -127,6 +128,9 @@ const edgeMarker = { type: MarkerType.ArrowClosed, color: '#b5b3c2', width: 18, 
 // so the moment registers.
 const ANIM_STEP_MS = 280
 const ANIM_FINAL_MS = 650
+// Longest example string searched for; a PDA explores far more configurations per character.
+const EXAMPLE_LENGTH = 20
+const PDA_EXAMPLE_LENGTH = 12
 
 const nfaInitialNodes: AutomataNode[] = [
   { id: 'q0', type: 'start', position: { x: 290, y: 168 }, data: { label: 'start₀', kind: 'start', color: SOURCE_COLORS[0] } },
@@ -1077,20 +1081,21 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
     setTestString(randomTestString(activeAlphabet))
     setTestPanelOpen(true)
   }, [cancelConnection, activeAlphabet])
-  const [examples, setExamples] = useState<string[] | null>(null)
-  useEffect(() => { setExamples(null) }, [savedJson])
+  const [examples, setExamples] = useState<ExampleBatch | null>(null)
+  useEffect(() => { setExamples(null) }, [graphJson])
   const generateExamples = useCallback(() => {
     cancelConnection()
-    if (isPda) { setExamples(findPdaAcceptedStrings(graph, 5)); return }
-    if (isDfa) {
-      if (!isStandardDfa) { setDialog({ kind: 'alert', tone: 'error', title: 'Not a standard DFA yet', message: 'Finish the design (one start state, no conflicts, no missing transitions) before generating examples.' }); return }
-      setExamples(findAcceptedStrings(completeWithSink(graph), 5))
-      return
-    }
-    const result = nfaToDfa(graph)
-    if (!result.ok) { setDialog({ kind: 'alert', tone: 'error', title: 'Cannot generate examples', message: result.message }); return }
-    setExamples(findAcceptedStrings(result.graph, 5))
-  }, [cancelConnection, isDfa, isPda, isStandardDfa, graph])
+    setExamples(nextExampleBatch(examples, () => {
+      if (isPda) return { pool: findPdaAcceptedStrings(graph, EXAMPLE_POOL_SIZE, PDA_EXAMPLE_LENGTH), page: 0, maxLength: PDA_EXAMPLE_LENGTH }
+      if (isDfa) {
+        if (!isStandardDfa) { setDialog({ kind: 'alert', tone: 'error', title: 'Not a standard DFA yet', message: 'Finish the design (one start state, no conflicts, no missing transitions) before generating examples.' }); return null }
+        return { pool: findAcceptedStrings(completeWithSink(graph), EXAMPLE_POOL_SIZE, EXAMPLE_LENGTH), page: 0, maxLength: EXAMPLE_LENGTH }
+      }
+      const result = nfaToDfa(graph)
+      if (!result.ok) { setDialog({ kind: 'alert', tone: 'error', title: 'Cannot generate examples', message: result.message }); return null }
+      return { pool: findAcceptedStrings(result.graph, EXAMPLE_POOL_SIZE, EXAMPLE_LENGTH), page: 0, maxLength: EXAMPLE_LENGTH }
+    }))
+  }, [cancelConnection, isDfa, isPda, isStandardDfa, graph, examples])
 
   // Presentation-only derivations for the status strip and its diagnostics panel.
   const branching = conflicts.filter(item => item.symbol !== 'ε')
@@ -1339,14 +1344,8 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
                 </div>
               </div>
               <div id="string-test-status" role="status" className={`string-test-footer ${testResult ? `test-result is-${testResult.status}` : ''}`}>{testResult ? <><strong>{testResult.status === 'accepted' ? 'Accepted' : testResult.status === 'rejected' ? 'Rejected' : 'Cannot run'}</strong> · {testResult.message}</> : testHint}</div>
-              <div className="accepted-examples">
-                <button className="secondary-button" type="button" onClick={generateExamples}><Sparkles size={14} aria-hidden="true" /> Generate 5 accepted strings</button>
-                {examples && (examples.length
-                  ? <ul className="accepted-examples-list" aria-label="Accepted strings — click one to use it">{examples.map((example, index) => <li key={index}>
-                      <button type="button" title="Use as input" onClick={() => { setTestString(example); testInputRef.current?.focus() }}>{example.length ? example : 'ε'}</button>
-                    </li>)}</ul>
-                  : <span className="accepted-examples-empty">No accepted string found within a reasonable length.</span>)}
-              </div>
+              <ExampleStrings batch={examples} noun="accepted strings" emptyText="No accepted string found within a reasonable length."
+                onGenerate={generateExamples} onUse={example => { setTestString(example); testInputRef.current?.focus() }} />
             </section>
           </div>
         </section>

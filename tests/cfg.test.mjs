@@ -92,3 +92,8 @@ test('CFG → PDA picks a bottom marker the grammar does not use', () => {
   const pda = cfgToPda(grammar('S → $S | a'))
   assert.deepEqual(pda.transitions[0].symbols, ['ε,ε→S⊥'])
 })
+
+test('an ambiguous grammar lists each string once', () => {
+  const strings = generateStrings(grammar('S → SS | a'), 4)
+  assert.deepEqual(strings, ['a', 'aa', 'aaa', 'aaaa'])
+})
