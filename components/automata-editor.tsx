@@ -38,6 +38,7 @@ import { simulateAutomaton, type SimulationResult } from '../lib/automata-simula
 import {
   SOURCE_COLORS,
   builtInCategories,
+  inkColor,
   graphFromEditor,
   indexedLabel,
   pickLeastUsedColor,
@@ -73,6 +74,7 @@ import {
   type PdaStep,
 } from '../lib/pda'
 import { GrammarLab } from './grammar-editor'
+import { ThemeToggle } from './theme-toggle'
 import { Dropdown, MenuItem } from './menus'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 
@@ -357,7 +359,7 @@ function RoutedEdge({ id, source, target, style, data, label, selected }: EdgePr
     : null
   useEffect(() => { if (route?.side) preferredSide.current = route.side }, [route?.side])
   if (!route || !sourceNode || !targetNode) return null
-  const color = data?.color ?? String(style?.stroke ?? '#9292a0')
+  const color = inkColor(data?.color ?? String(style?.stroke ?? '#9292a0'))
   const emphasized = data?.emphasized || selected
   const opacity = data?.dimmed ? 0.18 : 1
   const caption = label
@@ -371,7 +373,7 @@ function RoutedEdge({ id, source, target, style, data, label, selected }: EdgePr
   return <>
     <defs><marker id={markerId} viewBox="0 0 10 10" refX="10" refY="5"
       markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto" overflow="visible">
-      <path d="M 0 0 L 10 5 L 0 10 Z" fill={color} stroke="none" />
+      <path d="M 0 0 L 10 5 L 0 10 Z" style={{ fill: color }} stroke="none" />
     </marker></defs>
     <BaseEdge id={id} path={route.path} markerEnd={`url(#${markerId})`}
       style={{ ...style, stroke: color, opacity, strokeWidth: emphasized || data?.animating ? 3 : 1.8 }} interactionWidth={24} />
@@ -379,7 +381,7 @@ function RoutedEdge({ id, source, target, style, data, label, selected }: EdgePr
       transform: `translate(-50%, -50%) translate(${labelPoint.x}px,${labelPoint.y}px)`, color,
     }} aria-hidden="true" /></EdgeLabelRenderer>}
     {caption != null && <EdgeLabelRenderer><div className={`edge-label ${multiline ? 'is-multiline' : ''}`} style={{
-      color: data?.dimmed ? `color-mix(in srgb, ${color} 35%, #17171c)` : color,
+      color: data?.dimmed ? `color-mix(in srgb, ${color} 35%, var(--label-fill))` : color,
       borderColor: 'currentColor', zIndex: data?.focused ? 20 : 1,
       // A tall caption on a self-loop grows upward from the top of the loop instead of covering the state.
       transform: `translate(-50%, ${multiline && source === target ? 'calc(-100% + 10px)' : '-50%'}) translate(${labelPoint.x}px,${labelPoint.y}px)`
@@ -409,7 +411,7 @@ function PaletteItem({ category, title, subtitle, onDragStart, onClick }: {
 
 function ConnectionPreview({ sourcePoint, pointer, color }: { color: string; sourcePoint: { x: number; y: number }; pointer: { x: number; y: number } }) {
   const [path] = getBezierPath({ sourceX: sourcePoint.x, sourceY: sourcePoint.y, sourcePosition: Position.Right, targetX: pointer.x, targetY: pointer.y, targetPosition: Position.Left, curvature: 0.25 })
-  return <svg style={{ '--state-color': color } as CSSProperties} className="connection-preview" aria-hidden="true"><defs><marker id="preview-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill={color} /></marker></defs><path d={path} markerEnd="url(#preview-arrow)" /></svg>
+  return <svg style={{ '--state-color': inkColor(color) } as CSSProperties} className="connection-preview" aria-hidden="true"><defs><marker id="preview-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" style={{ fill: inkColor(color) }} /></marker></defs><path d={path} markerEnd="url(#preview-arrow)" /></svg>
 }
 
 function graphToFlow(graph: AutomatonGraph): { nodes: AutomataNode[]; edges: Edge[] } {
@@ -1183,6 +1185,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
         </div>
       </div>
       <div className="toolbar-spacer" />
+      <ThemeToggle />
       <div className={`save-status ${saveFailed ? 'is-error' : saveStatus.startsWith('Saved') ? 'is-ok' : ''}`} role="status"
         title="Only on this browser and device. Clearing browser data removes this graph. Each tab saves separately.">
         <span className="save-dot" aria-hidden="true" /><span>{saveStatus}</span>
@@ -1286,7 +1289,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert }: { mode: AutomatonMo
           {isDfa && <span className={`stat-pill ${testPassed ? 'is-good' : ''}`} title="Whether Validate DFA has confirmed this is a standard DFA since it last changed — not whether a particular test string was accepted">Validated <b>{testPassed ? 'Yes' : 'No'}</b></span>}
         </div>
         <div className="toolbar-actions">{selectedStart && <button className="tool-button" type="button" onClick={toggleStartAccepting} aria-pressed={!!selectedStart.data.accepting}>◎ <span>{selectedStart.data.accepting ? 'Start accepts' : 'Start rejects ε'}</span></button>}</div>
-      </div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }} onMouseMove={onPaneMouseMove}>{reshapeTick > 0 && <div key={reshapeTick} className="reshape-flash" aria-hidden="true" />}{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} color={sourceColor(connectingNode)} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, data: { ...node.data, related: node.id === focusedEdge?.source || node.id === focusedEdge?.target, onRename: () => renameNode(node.id), onDelete: () => deleteNode(node.id), animating: activeFrame && node.id === activeFrame.stateId ? activeKind ?? undefined : undefined, animatingTick: animation?.tick }, selected: node.id === selectedId || node.id === connectingId, draggable: true }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeClick={onEdgeClick} onEdgeMouseEnter={onEdgeMouseEnter} onEdgeMouseLeave={onEdgeMouseLeave} onNodeClick={onNodeClick} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop} autoPanOnNodeDrag={false} nodeDragThreshold={5} nodeClickDistance={5} onNodesDelete={onNodesDelete} deleteKeyCode={['Backspace', 'Delete']} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={fitViewOptions} minZoom={0.35} maxZoom={2}><Background color="#303039" gap={24} size={1} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => isAcceptingNode(node.data as AutomataNodeData) ? '#a78bfa' : node.data.kind === 'start' ? '#67e8f9' : '#71717a'} maskColor="rgba(17,17,22,.75)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target (or source for a loop) · Drag to move · Esc to cancel</div> : nodes.length === 0 ? <div className="canvas-empty-hint">Drag a state in from the sidebar to get started</div> : <div className="canvas-hint">Click a state to connect · Drag a state to move</div>}
+      </div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }} onMouseMove={onPaneMouseMove}>{reshapeTick > 0 && <div key={reshapeTick} className="reshape-flash" aria-hidden="true" />}{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} color={sourceColor(connectingNode)} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, data: { ...node.data, related: node.id === focusedEdge?.source || node.id === focusedEdge?.target, onRename: () => renameNode(node.id), onDelete: () => deleteNode(node.id), animating: activeFrame && node.id === activeFrame.stateId ? activeKind ?? undefined : undefined, animatingTick: animation?.tick }, selected: node.id === selectedId || node.id === connectingId, draggable: true }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeClick={onEdgeClick} onEdgeMouseEnter={onEdgeMouseEnter} onEdgeMouseLeave={onEdgeMouseLeave} onNodeClick={onNodeClick} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop} autoPanOnNodeDrag={false} nodeDragThreshold={5} nodeClickDistance={5} onNodesDelete={onNodesDelete} deleteKeyCode={['Backspace', 'Delete']} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={fitViewOptions} minZoom={0.35} maxZoom={2}><Background gap={24} size={1.4} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => inkColor(sourceColor(node as AutomataNode))} maskColor="var(--minimap-mask)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target (or source for a loop) · Drag to move · Esc to cancel</div> : nodes.length === 0 ? <div className="canvas-empty-hint">Drag a state in from the sidebar to get started</div> : <div className="canvas-hint">Click a state to connect · Drag a state to move</div>}
         {isPda && <StackPanel step={stackStep} index={stackIndex} total={stackSteps?.length ?? 0} inputLength={Array.from(testString).length} />}
       </div>
         <section className="string-test-panel" aria-label="Alphabet and string test" onKeyDown={event => event.stopPropagation()}>

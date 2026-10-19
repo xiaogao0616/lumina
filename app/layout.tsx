@@ -9,7 +9,7 @@ const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', displ
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 
 export const metadata: Metadata = {
-  title: 'Automata Lab — DFA and NFA',
+  title: 'Automata Lab — DFA, NFA, PDA and CFG',
   description: 'Separate visual labs for deterministic and nondeterministic finite automata, with NFA-to-DFA conversion.',
   icons: {
     icon: [
@@ -30,6 +30,8 @@ export const metadata: Metadata = {
   },
 }
 
+const themeScript = `try{var t=localStorage.getItem('automata-lab-theme');if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}`
+
 export const viewport: Viewport = {
   colorScheme: 'light dark',
   themeColor: [
@@ -44,7 +46,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Sets the theme before first paint so a dark-theme reload does not flash light. */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`antialiased ${sans.variable} ${mono.variable}`}>{children}</body>
     </html>
   )
