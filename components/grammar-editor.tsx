@@ -14,6 +14,7 @@ import {
 import { readSavedGrammar, type SavedGrammar } from '../lib/editor-storage'
 import { EXAMPLE_POOL_SIZE, randomTestString } from '../lib/accepted-strings'
 import { ThemeToggle } from './theme-toggle'
+import { WorkspaceCat } from './workspace-cat'
 import { Dropdown, MenuItem } from './menus'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 import type { OpenTab } from './automata-editor'
@@ -343,6 +344,7 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
           </div> : <div className="canvas-empty-hint">{testResult?.status === 'rejected'
             ? 'No parse tree: this string is not in the language.'
             : 'Test a string below to see its parse tree and leftmost derivation here'}</div>}
+          <WorkspaceCat result={testResult} watching={animating} placement="left" />
         </div>
         <section className="string-test-panel" aria-label="Terminals and string test">
           <button className="string-test-toggle" type="button" aria-expanded={testPanelOpen} aria-controls="cfg-test-content" onClick={() => setTestPanelOpen(open => !open)}>
