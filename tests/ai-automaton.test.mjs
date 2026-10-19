@@ -66,7 +66,8 @@ test('a CFG spec is checked by the grammar parser', () => {
 })
 
 test('settings fall back to defaults and prompts mention the target', () => {
-  assert.equal(readAiSettings(null).provider, 'anthropic')
+  assert.equal(readAiSettings(null).provider, 'gemini')
+  assert.equal(readAiSettings('{"provider":"anthropic"}').model, 'claude-sonnet-5-5')
   assert.equal(readAiSettings('{"provider":"openai","apiKey":" k "}').apiKey, 'k')
   assert.equal(readAiSettings('{bad').apiKey, '')
   assert.match(userPrompt('pda', 'aⁿbⁿ', false), /PDA/)

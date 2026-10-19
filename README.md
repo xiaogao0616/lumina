@@ -117,7 +117,7 @@ There are four workspaces. They all open as tabs in one window, so you can keep 
 ### ✦ Build with AI
 - Click **✦ AI** at the end of the tab strip, then **describe a language** ("strings over {a, b} ending in ab") or **take / choose a photo** of a hand-drawn diagram or grammar
 - Pick DFA, NFA, PDA, CFG, or let the model choose; the result opens in a new tab after the same checks as an imported file (one start state, single-character symbols, a DFA really deterministic, rules that parse)
-- Uses your own API key, called straight from the browser: Anthropic (Claude) or any OpenAI-compatible endpoint with a vision model. The key is kept only in this browser's local storage
+- Uses your own API key, called straight from the browser: Google Gemini (free key from [AI Studio](https://aistudio.google.com/apikey)), Anthropic (Claude), or any OpenAI-compatible endpoint with a vision model. The key is kept only in this browser's local storage
 
 ## 🧭 How the pieces fit
 

@@ -211,22 +211,27 @@ export function specToResult(raw: unknown, target: AiTarget): AiResult {
   return { ok: true, mode: type, graph, title, explanation }
 }
 
-// --- Providers. Both are called straight from the browser with the user's own key. ---
+// --- Providers, all called straight from the browser with the user's own key. Gemini (free tier
+// from Google AI Studio) goes through Google's OpenAI-compatible endpoint. ---
 
-export type AiProvider = 'anthropic' | 'openai'
+export type AiProvider = 'gemini' | 'anthropic' | 'openai'
 export type AiSettings = { provider: AiProvider; apiKey: string; model: string; baseUrl: string }
 export type AiImage = { mediaType: string; base64: string }
 
 export const AI_SETTINGS_KEY = 'automata-lab.ai-settings.v1'
-export const defaultModels: Record<AiProvider, string> = { anthropic: 'claude-sonnet-5-5', openai: 'gpt-4o' }
-export const defaultBaseUrls: Record<AiProvider, string> = { anthropic: 'https://api.anthropic.com', openai: 'https://api.openai.com/v1' }
+export const defaultModels: Record<AiProvider, string> = { gemini: 'gemini-flash-latest', anthropic: 'claude-sonnet-5-5', openai: 'gpt-4o' }
+export const defaultBaseUrls: Record<AiProvider, string> = {
+  gemini: 'https://generativelanguage.googleapis.com/v1beta/openai',
+  anthropic: 'https://api.anthropic.com',
+  openai: 'https://api.openai.com/v1',
+}
 
 export function readAiSettings(raw: string | null): AiSettings {
-  const fallback: AiSettings = { provider: 'anthropic', apiKey: '', model: defaultModels.anthropic, baseUrl: defaultBaseUrls.anthropic }
+  const fallback: AiSettings = { provider: 'gemini', apiKey: '', model: defaultModels.gemini, baseUrl: defaultBaseUrls.gemini }
   try {
     const value: unknown = raw ? JSON.parse(raw) : null
     if (!record(value)) return fallback
-    const provider = value.provider === 'openai' ? 'openai' : 'anthropic'
+    const provider: AiProvider = value.provider === 'openai' || value.provider === 'anthropic' ? value.provider : 'gemini'
     const text = (field: unknown, otherwise: string) => typeof field === 'string' && field.trim() ? field.trim() : otherwise
     return { provider, apiKey: text(value.apiKey, ''), model: text(value.model, defaultModels[provider]), baseUrl: text(value.baseUrl, defaultBaseUrls[provider]) }
   } catch {

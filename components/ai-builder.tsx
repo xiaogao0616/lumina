@@ -121,12 +121,13 @@ function AiBuilderDialog({ defaultTarget, onResult, onClose }: { defaultTarget: 
         <summary>AI service{settings.apiKey ? '' : ' (add your API key)'}</summary>
         <label className="ai-field">Provider
           <select value={settings.provider} onChange={event => switchProvider(event.target.value as AiProvider)}>
+            <option value="gemini">Google Gemini (free tier)</option>
             <option value="anthropic">Anthropic (Claude)</option>
             <option value="openai">OpenAI-compatible</option>
           </select>
         </label>
         <label className="ai-field">API key
-          <input type="password" value={settings.apiKey} autoComplete="off" spellCheck={false} placeholder={settings.provider === 'anthropic' ? 'sk-ant-…' : 'sk-…'}
+          <input type="password" value={settings.apiKey} autoComplete="off" spellCheck={false} placeholder={settings.provider === 'anthropic' ? 'sk-ant-…' : settings.provider === 'gemini' ? 'AIza…' : 'sk-…'}
             onChange={event => updateSettings({ apiKey: event.target.value.trim() })} />
         </label>
         <label className="ai-field">Model
@@ -135,6 +136,7 @@ function AiBuilderDialog({ defaultTarget, onResult, onClose }: { defaultTarget: 
         <label className="ai-field">Base URL
           <input value={settings.baseUrl} spellCheck={false} onChange={event => updateSettings({ baseUrl: event.target.value })} />
         </label>
+        {settings.provider === 'gemini' && <p className="ai-note">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">aistudio.google.com/apikey</a>.</p>}
         <p className="ai-note">Your key stays in this browser and is sent only to the address above. The model must accept images to read photos.</p>
       </details>
       {error && <p className="ai-error" role="alert">{error}</p>}
