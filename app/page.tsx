@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Zap } from 'lucide-react'
+import { ArrowRight, GraduationCap, Swords, Zap } from 'lucide-react'
 import { HeroAutomaton } from '../components/hero-automaton'
 import { ThemeToggle } from '../components/theme-toggle'
 
@@ -42,6 +42,21 @@ export default function HomePage() {
               <span>Open workspace <ArrowRight size={14} aria-hidden="true" /></span>
             </Link>
           ))}
+        </div>
+        <h2 className="lab-section-title">Go further</h2>
+        <div className="lab-cards">
+          <Link className="lab-card is-practice" href="/dfa?practice=1">
+            <span className="lab-card-icon"><GraduationCap size={22} aria-hidden="true" /></span>
+            <h2>Practice</h2>
+            <p>Twelve languages to build a DFA or NFA for. Check compares your machine with the answer exactly and shows the shortest string it gets wrong.</p>
+            <span>Start practising <ArrowRight size={14} aria-hidden="true" /></span>
+          </Link>
+          <Link className="lab-card is-pump" href="/pumping">
+            <span className="lab-card-icon"><Swords size={22} aria-hidden="true" /></span>
+            <h2>Pumping lemma game</h2>
+            <p>Show aⁿbⁿ isn’t regular by beating the computer: it picks p and the split, you pick the string and how far to pump.</p>
+            <span>Play <ArrowRight size={14} aria-hidden="true" /></span>
+          </Link>
         </div>
       </main>
     </div>

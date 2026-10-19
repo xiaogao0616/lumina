@@ -1,0 +1,106 @@
+/* Compare / combine, regex, share and practice dialogs, and the practice banner. Built on the modal styles in globals.css. */
+.modal-box.tool-modal { max-width: 520px; max-height: calc(100dvh - 40px); overflow-y: auto; }
+.tool-modal h3 { position: relative; padding-right: 32px; }
+.tool-modal h3 .tool-modal-icon { display: grid; place-items: center; box-sizing: content-box; padding: 4px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: var(--accent); color: #121212; box-shadow: var(--hard-sm); }
+.tool-close { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 28px; height: 28px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: var(--raised); color: var(--text); cursor: pointer; }
+.tool-close:hover { background: var(--danger-fill); color: #121212; }
+.modal-box p.tool-lead { margin-bottom: 10px; }
+.modal-box p.tool-note, .tool-note { margin-top: 8px; color: var(--muted); font-size: var(--fs-small); line-height: 1.55; }
+.tool-note code, .modal-box p code { padding: 0 3px; border-radius: var(--radius-xs); background: var(--hover); font: 600 12px var(--font-mono), monospace; }
+
+.tool-segment { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--hover); }
+.tool-segment button { height: 32px; border: 1.5px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-2); font-size: var(--fs-small); font-weight: 700; cursor: pointer; }
+.tool-segment button:hover { background: var(--raised); }
+.tool-segment button[aria-selected="true"] { border-color: var(--line); background: var(--accent); color: #121212; box-shadow: var(--hard-sm); }
+.tool-field { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 10px; margin-top: 12px; color: var(--text-2); font-size: var(--fs-small); font-weight: 700; }
+.tool-field select, .tool-field input { min-width: 0; height: 36px; padding: 0 8px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--input-bg); color: var(--text); font: 500 var(--fs-body) var(--font-mono), monospace; }
+.tool-field select { font-family: var(--font-sans), sans-serif; }
+.tool-field select:focus-visible, .tool-field input:focus-visible { outline: none; box-shadow: var(--hard); }
+.modal-button.tool-wide { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 14px; }
+
+.modal-box p.tool-error, .tool-error { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; padding: 8px 10px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--danger-fill); color: #121212; font-weight: 600; }
+.tool-error svg { flex-shrink: 0; margin-top: 2px; }
+.tool-verdict { margin-top: 12px; padding: 10px 12px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--hover); box-shadow: var(--hard-sm); }
+.modal-box .tool-verdict p, .modal-box p.tool-verdict { display: flex; align-items: center; gap: 8px; color: var(--text); font-weight: 600; }
+.tool-verdict.is-good { background: var(--success-fill); }
+.tool-verdict.is-bad { background: var(--warning-fill); }
+.modal-box .tool-verdict.is-good p, .modal-box p.tool-verdict.is-good, .modal-box .tool-verdict.is-bad p { color: #121212; }
+.modal-box .tool-verdict.is-bad p.tool-note { display: block; color: #3d3a33; font-weight: 500; }
+.tool-verdict svg { flex-shrink: 0; }
+
+.word-list { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.word-row { display: flex; align-items: center; gap: 10px; min-height: 34px; color: inherit; font-size: var(--fs-body); }
+.word-row > span { flex: 1; }
+.word-chip { display: inline-grid; place-items: center; min-width: 34px; max-width: 220px; overflow: hidden; height: 28px; padding: 0 8px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: var(--raised); color: var(--text); font: 700 14px var(--font-mono), monospace; text-overflow: ellipsis; white-space: nowrap; box-shadow: var(--hard-sm); }
+.secondary-button.word-try { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px; font-size: var(--fs-small); }
+
+.tool-divider { display: flex; align-items: center; gap: 10px; margin: 18px 0 10px; color: var(--muted); font: 700 11px var(--font-mono), monospace; letter-spacing: .06em; text-transform: uppercase; }
+.tool-divider::before, .tool-divider::after { content: ''; flex: 1; border-top: var(--bw) dashed var(--border-soft); }
+.combine-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.secondary-button.combine-button { display: grid; justify-items: center; gap: 1px; height: auto; padding: 8px 4px; }
+.combine-button b { font: 800 15px var(--font-mono), monospace; }
+.combine-button small { color: var(--muted); font-size: 11px; font-weight: 600; }
+@media (max-width: 520px) { .combine-grid { grid-template-columns: 1fr 1fr; } }
+
+.regex-result { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.regex-result code { flex: 1; min-width: 0; padding: 12px 14px; overflow-x: auto; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--input-bg); color: var(--text); font: 700 16px/1.5 var(--font-mono), monospace; white-space: pre-wrap; word-break: break-all; box-shadow: var(--hard); }
+.regex-result .secondary-button, .share-row .secondary-button { display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; height: 36px; }
+.share-row { display: flex; align-items: center; gap: 10px; }
+.share-row .modal-input { margin-top: 0; font: 500 12px var(--font-mono), monospace; }
+
+/* Practice picker */
+.practice-progress { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.practice-progress-bar { flex: 1; height: 12px; overflow: hidden; border: var(--bw) solid var(--line); border-radius: var(--radius-pill); background: var(--hover); }
+.practice-progress-bar span { display: block; height: 100%; background: var(--success-fill); transition: width .3s; }
+.practice-progress b { color: var(--text); font: 700 11px var(--font-mono), monospace; white-space: nowrap; }
+.practice-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.practice-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--raised); box-shadow: var(--hard-sm); }
+.practice-item.is-solved { background: color-mix(in srgb, var(--success-fill) 30%, var(--raised)); }
+.practice-level { display: flex; flex-direction: column-reverse; flex-shrink: 0; gap: 3px; }
+.practice-level i { display: block; width: 6px; height: 6px; border: 1.5px solid var(--line); border-radius: 50%; }
+.practice-level i.is-on { background: var(--mode-fill); }
+.practice-copy { display: grid; flex: 1; gap: 2px; min-width: 0; }
+.practice-copy b { color: var(--text); font-size: var(--fs-title); }
+.practice-copy small { color: var(--muted); font-size: var(--fs-small); line-height: 1.45; }
+.practice-solved { display: grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid var(--line); border-radius: 50%; background: var(--success-fill); color: #121212; }
+.practice-item .secondary-button { display: inline-flex; flex-shrink: 0; align-items: center; gap: 4px; height: 30px; }
+
+/* Practice banner above a practice tab's canvas */
+.exercise-banner { padding: 10px 16px; border-bottom: var(--bw) solid var(--line); background: color-mix(in srgb, var(--mode-fill) 28%, var(--surface)); }
+.exercise-main { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.exercise-badge { display: inline-flex; flex-shrink: 0; align-items: center; gap: 5px; height: 26px; padding: 0 9px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: var(--mode-fill); color: #121212; font: 700 11px var(--font-mono), monospace; letter-spacing: .04em; box-shadow: var(--hard-sm); transform: rotate(-2deg); }
+.exercise-copy { flex: 1; min-width: 240px; }
+.exercise-copy h2 { margin: 0; color: var(--text); font: 800 17px var(--font-display), var(--font-sans), sans-serif; letter-spacing: -.01em; }
+.exercise-copy p { margin: 2px 0 0; color: var(--text-2); font-size: var(--fs-body); line-height: 1.5; }
+.exercise-alphabet { margin-left: 6px; padding: 1px 6px; border: 1.5px solid var(--line); border-radius: var(--radius-xs); background: var(--raised); color: var(--text); font: 700 12px var(--font-mono), monospace; white-space: nowrap; }
+.exercise-copy p.exercise-hint { display: flex; align-items: center; gap: 6px; width: fit-content; margin-top: 6px; padding: 4px 8px; border: 1.5px dashed var(--line); border-radius: var(--radius-sm); background: var(--accent-soft); }
+.exercise-actions { display: flex; align-items: center; gap: 10px; }
+.exercise-actions .primary-button { display: inline-flex; align-items: center; gap: 6px; }
+.exercise-verdict { margin-top: 10px; padding: 8px 12px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--raised); box-shadow: var(--hard-sm); animation: pop-in .14s ease-out; }
+.exercise-verdict p { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text); font-size: var(--fs-body); }
+.exercise-banner.is-correct .exercise-verdict { background: var(--success-fill); }
+.exercise-banner.is-wrong .exercise-verdict { background: var(--warning-fill); }
+.exercise-banner.is-error .exercise-verdict { background: var(--danger-fill); }
+.exercise-banner:is(.is-correct, .is-wrong, .is-error) .exercise-verdict :is(p, .word-row) { color: #121212; }
+.exercise-verdict .word-list { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+/* The Practice button at the end of the tab strip. */
+.tab-add.is-practice { --mode-fill: var(--success-fill); display: inline-flex; align-items: center; gap: 5px; border-style: solid; background: var(--mode-fill); color: #121212; box-shadow: var(--hard-sm); }
+.tab-add.is-practice:hover { color: #121212; transform: translate(-1px, -1px) rotate(2deg); box-shadow: var(--hard); }
+
+/* Chomsky normal form steps and the ambiguity check (CFG tab) */
+.modal-box.tool-modal.is-wide { max-width: 860px; }
+.cnf-steps { display: grid; gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; counter-reset: cnf; }
+.cnf-steps li { position: relative; padding: 10px 12px 10px 40px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--raised); box-shadow: var(--hard-sm); counter-increment: cnf; }
+.cnf-steps li::before { content: counter(cnf); position: absolute; top: 9px; left: 10px; display: grid; place-items: center; width: 20px; height: 20px; border: 1.5px solid var(--line); border-radius: 50%; background: var(--cfg-fill); color: #121212; font: 700 11px var(--font-mono), monospace; }
+.cnf-steps li:last-child { background: color-mix(in srgb, var(--cfg-fill) 30%, var(--raised)); }
+.cnf-steps b { color: var(--text); font-size: var(--fs-body); }
+.cnf-steps pre { margin: 6px 0 0; color: var(--text-2); font: 500 13px/1.6 var(--font-mono), monospace; white-space: pre-wrap; }
+.ambiguity-trees { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.ambiguity-trees figure { min-width: 0; margin: 0; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--canvas); box-shadow: var(--hard-sm); }
+.ambiguity-trees figcaption { padding: 6px 10px; border-bottom: var(--bw) solid var(--line); background: var(--raised); color: var(--text); font: 700 12px var(--font-mono), monospace; }
+.ambiguity-trees .parse-tree-scroll { max-height: 360px; overflow: auto; }
+.modal-actions.is-left { justify-content: flex-start; margin-top: 12px; }
+.modal-actions.is-left .secondary-button { display: inline-flex; align-items: center; gap: 6px; }
+.tool-verdict .word-chip { margin: 0 2px; }
+@media (max-width: 700px) { .ambiguity-trees { grid-template-columns: 1fr; } }

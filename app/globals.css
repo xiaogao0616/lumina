@@ -550,6 +550,9 @@ button, input, textarea { font: inherit; }
 .lab-card span:not(.lab-card-icon) { justify-self: start; display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 5px 10px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: var(--mode-fill); color: #121212; font-size: 13px; font-weight: 700; }
 .lab-card span svg { transition: transform .15s; }
 .lab-card:hover { transform: translate(-3px, -3px); box-shadow: 8px 8px 0 var(--hard-color); }
+.lab-card.is-practice { --mode-fill: var(--success-fill); }
+.lab-card.is-pump { --mode-fill: var(--danger-fill); }
+.lab-section-title { margin: 56px 0 18px; color: var(--text); font: 800 28px var(--font-display), var(--font-sans), sans-serif; letter-spacing: -.03em; }
 .lab-card:active { transform: translate(2px, 2px); box-shadow: var(--hard-sm); }
 .lab-card:hover span svg { transform: translateX(3px); }
 
