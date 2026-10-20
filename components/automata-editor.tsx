@@ -143,57 +143,88 @@ const ANIM_FINAL_MS = 650
 const EXAMPLE_LENGTH = 20
 const PDA_EXAMPLE_LENGTH = 12
 
+// Strings that contain aa or bb: ε-moves guess which pair to look for, then each branch guesses where it starts.
 const nfaInitialNodes: AutomataNode[] = [
-  { id: 'q0', type: 'start', position: { x: 290, y: 168 }, data: { label: 'start₀', kind: 'start', color: SOURCE_COLORS[0] } },
-  { id: 'q1', type: 'state', position: { x: 545, y: 88 }, data: { label: 'q₀', kind: 'state', color: SOURCE_COLORS[1] } },
-  { id: 'q2', type: 'state', position: { x: 545, y: 248 }, data: { label: 'q₁', kind: 'state', color: SOURCE_COLORS[3] } },
-  { id: 'q3', type: 'accept', position: { x: 800, y: 168 }, data: { label: 'accept₀', kind: 'accept', color: SOURCE_COLORS[2] } },
+  { id: 'q0', type: 'start', position: { x: 200, y: 200 }, data: { label: 'start₀', kind: 'start', color: SOURCE_COLORS[0] } },
+  { id: 'q1', type: 'state', position: { x: 420, y: 80 }, data: { label: 'q₀', kind: 'state', color: SOURCE_COLORS[1] } },
+  { id: 'q2', type: 'state', position: { x: 640, y: 80 }, data: { label: 'q₁', kind: 'state', color: SOURCE_COLORS[1] } },
+  { id: 'q3', type: 'state', position: { x: 420, y: 320 }, data: { label: 'q₂', kind: 'state', color: SOURCE_COLORS[3] } },
+  { id: 'q4', type: 'state', position: { x: 640, y: 320 }, data: { label: 'q₃', kind: 'state', color: SOURCE_COLORS[3] } },
+  { id: 'q5', type: 'accept', position: { x: 860, y: 200 }, data: { label: 'accept₀', kind: 'accept', color: SOURCE_COLORS[2] } },
 ]
+const routedEdge = (id: string, source: string, target: string, ...symbols: string[]): Edge =>
+  ({ id, source, target, type: 'routed', data: { symbols }, label: symbols.join(', '), style: edgeStyle, markerEnd: edgeMarker })
 const nfaInitialEdges: Edge[] = [
-  { id: 'e-q0-q1', source: 'q0', target: 'q1', type: 'routed', data: { symbols: ['a'] }, label: 'a', style: edgeStyle, markerEnd: edgeMarker },
-  { id: 'e-q0-q2', source: 'q0', target: 'q2', type: 'routed', data: { symbols: ['a'] }, label: 'a', style: edgeStyle, markerEnd: edgeMarker },
-  { id: 'e-q1-q3', source: 'q1', target: 'q3', type: 'routed', data: { symbols: ['ε'] }, label: 'ε', style: edgeStyle, markerEnd: edgeMarker },
+  routedEdge('e-q0-q1', 'q0', 'q1', 'ε'),
+  routedEdge('e-q0-q3', 'q0', 'q3', 'ε'),
+  routedEdge('e-q1-q1', 'q1', 'q1', 'a', 'b'),
+  routedEdge('e-q1-q2', 'q1', 'q2', 'a'),
+  routedEdge('e-q2-q5', 'q2', 'q5', 'a'),
+  routedEdge('e-q3-q3', 'q3', 'q3', 'a', 'b'),
+  routedEdge('e-q3-q4', 'q3', 'q4', 'b'),
+  routedEdge('e-q4-q5', 'q4', 'q5', 'b'),
+  routedEdge('e-q5-q5', 'q5', 'q5', 'a', 'b'),
 ]
+// An even number of a's and an odd number of b's: each state remembers the two parities, a flips one and b the other.
 const dfaInitialNodes: AutomataNode[] = [
-  { id: 'q0', type: 'start', position: { x: 290, y: 168 }, data: { label: 'start₀', kind: 'start', color: SOURCE_COLORS[0] } },
-  { id: 'q1', type: 'state', position: { x: 545, y: 168 }, data: { label: 'q₀', kind: 'state', color: SOURCE_COLORS[1] } },
-  { id: 'q2', type: 'accept', position: { x: 800, y: 168 }, data: { label: 'accept₀', kind: 'accept', color: SOURCE_COLORS[2] } },
+  { id: 'q0', type: 'start', position: { x: 290, y: 88 }, data: { label: 'start₀', kind: 'start', color: SOURCE_COLORS[0] } },
+  { id: 'q1', type: 'state', position: { x: 620, y: 88 }, data: { label: 'q₀', kind: 'state', color: SOURCE_COLORS[1] } },
+  { id: 'q2', type: 'accept', position: { x: 290, y: 330 }, data: { label: 'accept₀', kind: 'accept', color: SOURCE_COLORS[2] } },
+  { id: 'q3', type: 'state', position: { x: 620, y: 330 }, data: { label: 'q₁', kind: 'state', color: SOURCE_COLORS[3] } },
 ]
 const dfaInitialEdges: Edge[] = [
-  { id: 'e-q0-q1', source: 'q0', target: 'q1', type: 'routed', data: { symbols: ['a'] }, label: 'a', style: edgeStyle, markerEnd: edgeMarker },
-  { id: 'e-q1-q2', source: 'q1', target: 'q2', type: 'routed', data: { symbols: ['b'] }, label: 'b', style: edgeStyle, markerEnd: edgeMarker },
+  routedEdge('e-q0-q1', 'q0', 'q1', 'a'),
+  routedEdge('e-q1-q0', 'q1', 'q0', 'a'),
+  routedEdge('e-q2-q3', 'q2', 'q3', 'a'),
+  routedEdge('e-q3-q2', 'q3', 'q2', 'a'),
+  routedEdge('e-q0-q2', 'q0', 'q2', 'b'),
+  routedEdge('e-q2-q0', 'q2', 'q0', 'b'),
+  routedEdge('e-q1-q3', 'q1', 'q3', 'b'),
+  routedEdge('e-q3-q1', 'q3', 'q1', 'b'),
 ]
 
-// Sipser's 0ⁿ1ⁿ machine, written with a and b: mark the bottom, push an a per a, then pop one per b.
+const pdaEdge = (id: string, source: string, target: string, ...rules: string[]): Edge =>
+  ({ id, source, target, type: 'routed', data: { symbols: rules }, label: pdaEdgeCaption(rules), style: edgeStyle, markerEnd: edgeMarker })
+// Every palindrome over {a, b}: push the first half, guess the middle (skipping one character for odd lengths), then match the rest against the stack.
 const pdaInitialNodes: AutomataNode[] = [
   { id: 'q0', type: 'start', position: { x: 200, y: 168 }, data: { label: 'start₀', kind: 'start', color: SOURCE_COLORS[0] } },
   { id: 'q1', type: 'state', position: { x: 440, y: 168 }, data: { label: 'q₀', kind: 'state', color: SOURCE_COLORS[1] } },
   { id: 'q2', type: 'state', position: { x: 680, y: 168 }, data: { label: 'q₁', kind: 'state', color: SOURCE_COLORS[3] } },
   { id: 'q3', type: 'accept', position: { x: 920, y: 168 }, data: { label: 'accept₀', kind: 'accept', color: SOURCE_COLORS[2] } },
 ]
-const pdaEdge = (id: string, source: string, target: string, ...rules: string[]): Edge =>
-  ({ id, source, target, type: 'routed', data: { symbols: rules }, label: pdaEdgeCaption(rules), style: edgeStyle, markerEnd: edgeMarker })
 const pdaInitialEdges: Edge[] = [
   pdaEdge('e-q0-q1', 'q0', 'q1', 'ε,ε→$'),
-  pdaEdge('e-q1-q1', 'q1', 'q1', 'a,ε→a'),
-  pdaEdge('e-q1-q2', 'q1', 'q2', 'ε,ε→ε'),
-  pdaEdge('e-q2-q2', 'q2', 'q2', 'b,a→ε'),
+  pdaEdge('e-q1-q1', 'q1', 'q1', 'a,ε→a', 'b,ε→b'),
+  pdaEdge('e-q1-q2', 'q1', 'q2', 'ε,ε→ε', 'a,ε→ε', 'b,ε→ε'),
+  pdaEdge('e-q2-q2', 'q2', 'q2', 'a,a→ε', 'b,b→ε'),
   pdaEdge('e-q2-q3', 'q2', 'q3', 'ε,$→ε'),
 ]
+const fourStates = (): AutomatonGraph['states'] => [
+  { id: 'q0', label: 'start₀', kind: 'start', position: { x: 200, y: 168 }, color: SOURCE_COLORS[0] },
+  { id: 'q1', label: 'q₀', kind: 'state', position: { x: 440, y: 168 }, color: SOURCE_COLORS[1] },
+  { id: 'q2', label: 'q₁', kind: 'state', position: { x: 680, y: 168 }, color: SOURCE_COLORS[3] },
+  { id: 'q3', label: 'accept₀', kind: 'accept', position: { x: 920, y: 168 }, color: SOURCE_COLORS[2] },
+]
 const pdaExamples: { name: string; hint: string; graph: AutomatonGraph }[] = [
-  { name: 'aⁿbⁿ', hint: 'Push an a for each a, pop one for each b', graph: {
+  { name: 'Palindromes', hint: 'Guess the middle, skipping one character when the length is odd', graph: {
     symbols: ['a', 'b'],
     states: pdaInitialNodes.map(node => ({ id: node.id, label: node.data.label, kind: node.data.kind, position: node.position, color: node.data.color! })),
     transitions: pdaInitialEdges.map(edge => ({ id: edge.id, source: edge.source, target: edge.target, symbols: transitionSymbols(edge) })),
   } },
+  { name: 'aⁿbⁿ', hint: 'Push an a for each a, pop one for each b', graph: {
+    symbols: ['a', 'b'],
+    states: fourStates(),
+    transitions: [
+      { id: 'e-q0-q1', source: 'q0', target: 'q1', symbols: ['ε,ε→$'] },
+      { id: 'e-q1-q1', source: 'q1', target: 'q1', symbols: ['a,ε→a'] },
+      { id: 'e-q1-q2', source: 'q1', target: 'q2', symbols: ['ε,ε→ε'] },
+      { id: 'e-q2-q2', source: 'q2', target: 'q2', symbols: ['b,a→ε'] },
+      { id: 'e-q2-q3', source: 'q2', target: 'q3', symbols: ['ε,$→ε'] },
+    ],
+  } },
   { name: 'Even palindromes wwᴿ', hint: 'Guess the middle, then match the second half against the stack', graph: {
     symbols: ['a', 'b'],
-    states: [
-      { id: 'q0', label: 'start₀', kind: 'start', position: { x: 200, y: 168 }, color: SOURCE_COLORS[0] },
-      { id: 'q1', label: 'q₀', kind: 'state', position: { x: 440, y: 168 }, color: SOURCE_COLORS[1] },
-      { id: 'q2', label: 'q₁', kind: 'state', position: { x: 680, y: 168 }, color: SOURCE_COLORS[3] },
-      { id: 'q3', label: 'accept₀', kind: 'accept', position: { x: 920, y: 168 }, color: SOURCE_COLORS[2] },
-    ],
+    states: fourStates(),
     transitions: [
       { id: 'e-q0-q1', source: 'q0', target: 'q1', symbols: ['ε,ε→$'] },
       { id: 'e-q1-q1', source: 'q1', target: 'q1', symbols: ['a,ε→a', 'b,ε→b'] },
@@ -519,7 +550,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
   const [addingCategory, setAddingCategory] = useState(false)
   const [categoryName, setCategoryName] = useState('')
   const [categoryError, setCategoryError] = useState('')
-  const nextIndices = useRef(new Map(isDfa ? [['start', 1], ['q', 1], ['accept', 1]] : [['start', 1], ['q', 2], ['accept', 1]]))
+  const nextIndices = useRef(new Map([['start', 1], ['q', isDfa || isPda ? 2 : 4], ['accept', 1]]))
   const addCategory = (event: React.FormEvent) => {
     event.preventDefault()
     const name = categoryName.trim().normalize('NFC')
@@ -546,7 +577,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
   const runPdaTest = () => runPda(simulationStates, edges.map(edge => ({ id: edge.id, source: edge.source, target: edge.target, symbols: transitionSymbols(edge) })), testString)
   const evaluate = (): SimulationResult & { steps?: PdaStep[] } => isPda ? runPdaTest() : simulateAutomaton(simulationStates, simulationTransitions, testString)
   const runTest = () => setLastTest({ key: simulationKey, result: evaluate() })
-  const [symbols, setSymbols] = useState<string[]>(isDfa || isPda ? ['a', 'b'] : ['a'])
+  const [symbols, setSymbols] = useState<string[]>(['a', 'b'])
   // Animates the walk a legal test string takes through the graph: one frame per edge taken
   // (an ε-move is its own frame), state-by-state, trying one NFA branch at a time until an
   // accepting one is found or every branch has been shown. `tick` only exists so the pulse on a

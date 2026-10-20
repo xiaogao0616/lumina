@@ -37,8 +37,8 @@ Four workspaces share one window as tabs, so a grammar can sit right next to the
 | **CFG** | [`/cfg`](https://xiaogao0616.github.io/lumina/cfg/) | Write rules as text, get a parse tree and leftmost derivation, convert to a PDA |
 
 <div align="center">
-<img src="docs/screenshot-nfa.jpg" alt="An NFA with ε-moves and branching, with its generated accepted strings listed below the canvas" width="100%">
-<br><sub>An NFA tab. Every workspace gets its own colour: blue for DFA, violet for NFA, orange for PDA, green for CFG.</sub>
+<img src="docs/screenshot-nfa.jpg" alt="The starting NFA for strings that contain aa or bb, with ε-moves into two branches and its generated accepted strings below the canvas" width="100%">
+<br><sub>An NFA tab, starting with a machine for strings that contain <code>aa</code> or <code>bb</code>. Every workspace gets its own colour: blue for DFA, violet for NFA, orange for PDA, green for CFG.</sub>
 </div>
 
 ## ✨ Features
@@ -118,7 +118,7 @@ Four workspaces share one window as tabs, so a grammar can sit right next to the
 <img src="docs/screenshot-cfg.jpg" alt="The parse tree and leftmost derivation of x+x*x in an arithmetic grammar, with the cat cheering Accepted" width="100%">
 <br><sub>A grammar tab: rules on the left, the parse tree and leftmost derivation of <code>x+x*x</code> on the right.</sub>
 <br><br>
-<img src="docs/screenshot-dfa-diagnostics.jpg" alt="The DFA diagnostics panel listing missing transitions per state" width="100%">
+<img src="docs/screenshot-dfa-diagnostics.jpg" alt="The DFA diagnostics panel listing the two transitions still missing from q₁" width="100%">
 <br><sub>Diagnostics name every (state, character) pair that's still missing, so you know what's left before the DFA is complete.</sub>
 </div>
 
@@ -129,6 +129,14 @@ Four workspaces share one window as tabs, so a grammar can sit right next to the
 - **DFA/NFA → regex** by state elimination, in the same syntax Regex → NFA reads.
 - **Pumping lemma game** at `/pumping`: the computer picks *p* and the split, you pick *s* and *i*, and a table shows whether your *s* wins against every split.
 - **Share link** packs a tab into the URL, and **Export LaTeX** writes a TikZ picture of an automaton or an `align*` block of a grammar for homework.
+
+<div align="center">
+<img src="docs/screenshot-practice.jpg" alt="A practice exercise, Ends in ab, with Check my answer showing the shortest string the machine gets wrong" width="100%">
+<br><sub>Practice mode: the check names the shortest string your machine gets wrong.</sub>
+<br><br>
+<img src="docs/screenshot-pumping.jpg" alt="The pumping lemma game: the opponent splits aaaabbbb, and pumping y twice leaves aⁿbⁿ" width="100%">
+<br><sub>The pumping lemma game: the opponent picks the split, you pick <i>i</i>.</sub>
+</div>
 
 ## ✦ Build with AI
 
@@ -151,7 +159,7 @@ The look is neo-brutalist on purpose: thick ink outlines, hard offset shadows, a
 - **A workspace cat** sits at the corner of the canvas. Its eyes follow your pointer, it purrs when you click it, cheers when a string is accepted, sulks when one is rejected, stares while a run animates, and falls asleep if you leave it alone. Tuck it away with its ✕; a paw button brings it back.
 
 <div align="center">
-<img src="docs/screenshot-pda.jpg" alt="A PDA for aⁿbⁿ in the dark theme, mid-run, with the stack panel showing a on top of $" width="100%">
+<img src="docs/screenshot-pda.jpg" alt="The palindrome PDA in the dark theme, mid-run on abbba, with the stack panel showing b, a, $" width="100%">
 <br><sub>The dark theme, with a PDA mid-run. The stack panel shows the stack after each move.</sub>
 <br><br>
 <img src="docs/screenshot-cat.jpg" alt="The workspace cat smiling with an Accepted speech bubble" width="420">
@@ -199,11 +207,11 @@ npm run dev        # → http://localhost:3000
 <details>
 <summary><b>Walkthrough: watch a PDA use its stack</b></summary>
 
-1. Open **PDA**. It starts with a machine for `aⁿbⁿ`.
-2. Enter `aabb` and press **Run animated**. The stack panel in the corner shows `$` go on first, then one `a` per `a` read, then one popped per `b`.
-3. Try `aab`. The run reads every character but ends with an `a` still on the stack, so it never reaches the accept state.
+1. Open **PDA**. It starts with a machine for every palindrome over `{a, b}`.
+2. Enter `abbba` and press **Run animated**. The stack panel in the corner shows `$` go on first, then `a` and `b` as the first half is read. At the middle `b` the machine guesses it is halfway, skips that character, and pops one symbol for each character after it.
+3. Try `abab`. No guess of the middle lets the second half match the stack, so it never reaches the accept state.
 4. Click an arrow to add or remove rules. Leave **Read**, **Pop** or **Push** blank for ε.
-5. **PDA tools → Example: Even palindromes wwᴿ** loads a nondeterministic PDA. Open the diagnostics pill above the canvas to see the rule pairs that branch.
+5. **PDA tools → Example: aⁿbⁿ** loads a smaller machine. Open the diagnostics pill above the canvas on the palindrome PDA to see the rule pairs that branch.
 
 </details>
 
