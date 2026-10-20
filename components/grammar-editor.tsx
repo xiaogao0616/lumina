@@ -23,7 +23,7 @@ import { findAmbiguity, toChomskyNormalForm, type AmbiguityResult, type CnfResul
 import { grammarToLatex } from '../lib/graph-tikz'
 import type { Grammar } from '../lib/cfg'
 
-const DEFAULT_GRAMMAR = 'S → aSb | ε'
+const DEFAULT_GRAMMAR = 'S → aSbS | bSaS | ε'
 const DERIVE_STEP_MS = 520
 const EXAMPLE_LENGTH = 20
 
