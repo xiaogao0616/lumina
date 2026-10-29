@@ -75,6 +75,10 @@ import {
   buildPdaRule, countPdaRules, displayPdaRule, findPdaAcceptedStrings, parsePdaRule, pdaBranching, pdaEdgeCaption, pdaInputsInUse, runPda,
   type PdaStep,
 } from '../lib/pda'
+import {
+  BLANK, buildTmRule, countTmRules, displayTmRule, findTmAcceptedStrings, parseTmRule, runTm, tapeAlphabet, tmConflicts, tmEdgeCaption, tmExamples,
+  type TmStatus, type TmStep,
+} from '../lib/turing'
 import { GrammarLab } from './grammar-editor'
 import { ThemeToggle } from './theme-toggle'
 import { WorkspaceCat } from './workspace-cat'
@@ -142,6 +146,10 @@ const ANIM_FINAL_MS = 650
 // Longest example string searched for; a PDA explores far more configurations per character.
 const EXAMPLE_LENGTH = 20
 const PDA_EXAMPLE_LENGTH = 12
+const TM_EXAMPLE_LENGTH = 9
+// A Turing machine takes many more moves than a PDA, so its walk plays faster, and faster still when long.
+const TM_STEP_MS = 160
+const TM_FAST_STEP_MS = 45
 
 // Strings that contain aa or bb: ε-moves guess which pair to look for, then each branch guesses where it starts.
 const nfaInitialNodes: AutomataNode[] = [
@@ -235,6 +243,8 @@ const pdaExamples: { name: string; hint: string; graph: AutomatonGraph }[] = [
   } },
 ]
 
+const resultLabel = (status: string) => ({ accepted: 'Accepted', rejected: 'Rejected', loops: 'Loops forever', undecided: 'No verdict' } as Record<string, string>)[status] ?? 'Cannot run'
+
 function isAcceptingNode(data: AutomataNodeData) {
   return data.kind === 'accept' || !!data.accepting
 }
@@ -303,7 +313,7 @@ function TransitionEditor({ edgeId, value, heading }: { edgeId: string; value: s
       <button type="button" className="transition-close" aria-label="Close editor" title="Close editor"
         onClick={() => actions.closeTransitionEditor(edgeId)}><X size={15} /></button>
     </div></header>
-    {actions.mode === 'pda' ? <PdaRuleList edgeId={edgeId} value={value} /> : <>
+    {actions.mode === 'pda' ? <PdaRuleList edgeId={edgeId} value={value} /> : actions.mode === 'tm' ? <TmRuleList edgeId={edgeId} value={value} /> : <>
     <div className="symbol-summary">Inputs: {value.length ? value.join(', ') : 'None'}</div>
     <div id={listId} className="symbol-dropdown">
       {actions.mode === 'nfa' && <div className="symbol-option"><button type="button" aria-pressed={value.includes('ε')} onClick={() => choose('ε')}>ε · Empty input</button><span title="Permanent option">Fixed</span></div>}
@@ -377,6 +387,51 @@ function PdaRuleList({ edgeId, value }: { edgeId: string; value: string[] }) {
       {error && <p role="alert">{error}</p>}
     </form>
     <small>Push writes left to right with the first character ending up on top, so pushing <code>AB</code> leaves A above B. A new character you read is added to the alphabet.</small>
+  </div>
+}
+
+/** A Turing machine arrow carries rules "read → write, move". A blank write keeps the symbol that was read. */
+function TmRuleList({ edgeId, value }: { edgeId: string; value: string[] }) {
+  const actions = useContext(TransitionContext)!
+  const [read, setRead] = useState('')
+  const [write, setWrite] = useState('')
+  const [move, setMove] = useState<'L' | 'R'>('R')
+  const [error, setError] = useState('')
+  const formId = useId()
+  const readRef = useRef<HTMLInputElement>(null)
+  return <div className="symbol-dropdown pda-rule-editor tm-rule-editor">
+    {value.length ? <ul className="pda-rule-list">{value.map(rule => <li key={rule} className="symbol-option">
+      <code>{displayTmRule(rule)}</code>
+      <button type="button" className="symbol-remove" aria-label={`Delete rule ${displayTmRule(rule)}`} title="Delete this rule"
+        onClick={() => actions.assign(edgeId, rule)}><X size={14} /></button>
+    </li>)}</ul> : <p className="symbol-selection-hint">No rules yet (∅), so this arrow is never taken.</p>}
+    <form onSubmit={event => {
+      event.preventDefault()
+      const built = buildTmRule(read, write, move)
+      if (!built.ok) { setError(built.message); return }
+      if (value.includes(built.rule)) { setError('This arrow already has that rule.'); return }
+      const message = actions.assign(edgeId, built.rule)
+      if (message) { setError(message); return }
+      setRead(''); setWrite(''); setError('')
+      readRef.current?.focus()
+    }}>
+      <p className="symbol-selection-hint">Add a rule: read a tape symbol, write one, then move the head. Type <code>_</code> for the blank {BLANK}.</p>
+      <div className="pda-rule-fields">
+        <label htmlFor={`${formId}-read`}>Read<input ref={readRef} id={`${formId}-read`} value={read} placeholder="a" autoComplete="off" spellCheck={false}
+          aria-invalid={!!error} onChange={event => { setRead(event.target.value); setError('') }} /></label>
+        <span aria-hidden="true">→</span>
+        <label htmlFor={`${formId}-write`}>Write<input id={`${formId}-write`} value={write} placeholder={read.trim() || 'same'} autoComplete="off" spellCheck={false}
+          aria-invalid={!!error} onChange={event => { setWrite(event.target.value); setError('') }} /></label>
+        <span aria-hidden="true">,</span>
+        <div className="tm-move" role="radiogroup" aria-label="Move the head">
+          {(['L', 'R'] as const).map(direction => <button key={direction} type="button" role="radio" aria-checked={move === direction}
+            title={direction === 'L' ? 'Move left' : 'Move right'} onClick={() => setMove(direction)}>{direction}</button>)}
+        </div>
+        <button type="submit">Add</button>
+      </div>
+      {error && <p role="alert">{error}</p>}
+    </form>
+    <small>Leave Write empty to keep the symbol, shown as <code>a → R</code>. Any (state, symbol) with no rule rejects, so there is no reject state to draw.</small>
   </div>
 }
 
@@ -474,6 +529,9 @@ function graphToFlow(graph: AutomatonGraph): { nodes: AutomataNode[]; edges: Edg
   }
 }
 
+// A new Turing machine tab starts with Sipser's M₁ for w#w, the first machine in chapter 3.
+const tmInitial = graphToFlow(tmExamples[0].graph)
+
 function savedToFlow(saved: SavedEditor): { nodes: AutomataNode[]; edges: Edge[] } {
   return {
     nodes: saved.nodes.map(node => ({
@@ -498,6 +556,7 @@ function savedToFlow(saved: SavedEditor): { nodes: AutomataNode[]; edges: Edge[]
 function defaultEdgeSymbols(mode: AutomatonMode, source: string, alphabet: string[], current: Edge[]): string[] {
   if (mode === 'nfa') return ['ε']
   if (mode === 'pda') return ['ε,ε→ε']
+  if (mode === 'tm') return []
   const first = alphabet[0]
   if (!first) return []
   return current.some(edge => edge.source === source && transitionSymbols(edge).includes(first)) ? [] : [first]
@@ -515,6 +574,29 @@ function StackPanel({ step, index, total, inputLength }: { step: PdaStep | null;
       </ol>
       <p className="stack-panel-foot">{cells.length ? `top ↑ · ${cells.length} symbol${cells.length === 1 ? '' : 's'}` : 'Nothing on the stack'}</p>
     </> : <p className="stack-panel-meta">Run a string to see the stack here.</p>}
+  </aside>
+}
+
+/** Floating strip over a Turing machine canvas: the tape around the head after the current move. */
+function TapePanel({ step, index, total, moves, stateLabel }: { step: TmStep | null; index: number; total: number; moves: number; stateLabel: string }) {
+  const tape = step ? Array.from(step.tape) : []
+  const head = step?.head ?? 0
+  // A window of cells that keeps the head in view; the left end of the tape is a hard wall.
+  const width = 17
+  const first = Math.max(0, Math.min(head - 6, Math.max(tape.length, head + 1) - width + 4))
+  const cells = Array.from({ length: width }, (_, offset) => first + offset)
+  return <aside className="tape-panel" aria-label="Tape" aria-live="polite">
+    <header><span>Tape</span>
+      {step ? <span className="stack-panel-meta">State <b>{stateLabel}</b>{step.rule && <> · <code>{displayTmRule(step.rule)}</code></>}</span>
+        : <span className="stack-panel-meta">Run a string to watch the head read and write the tape.</span>}
+      {step && <span className="stack-panel-move">{index === 0 ? 'Start' : `Move ${index}${total > 1 ? ` of ${Math.max(total - 1, moves)}` : ''}`}</span>}</header>
+    {step && <>
+      <ol className={`tape-cells ${first === 0 ? 'starts-at-edge' : ''}`}>
+        {cells.map(position => <li key={position} className={`${position === head ? 'is-head' : ''} ${(tape[position] ?? BLANK) === BLANK ? 'is-blank' : ''}`}>
+          {tape[position] ?? BLANK}
+        </li>)}
+      </ol>
+    </>}
   </aside>
 }
 
@@ -539,6 +621,9 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
 }) {
   const isDfa = mode === 'dfa'
   const isPda = mode === 'pda'
+  const isTm = mode === 'tm'
+  /** PDA and TM arrows carry rules rather than characters. */
+  const hasRules = isPda || isTm
   const [testPanelOpen, setTestPanelOpen] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [alphabetOpen, setAlphabetOpen] = useState(false)
@@ -550,7 +635,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
   const [addingCategory, setAddingCategory] = useState(false)
   const [categoryName, setCategoryName] = useState('')
   const [categoryError, setCategoryError] = useState('')
-  const nextIndices = useRef(new Map([['start', 1], ['q', isDfa || isPda ? 2 : 4], ['accept', 1]]))
+  const nextIndices = useRef(new Map([['start', 1], ['q', isTm ? 1 : isDfa || isPda ? 2 : 4], ['accept', 1]]))
   const addCategory = (event: React.FormEvent) => {
     event.preventDefault()
     const name = categoryName.trim().normalize('NFC')
@@ -566,25 +651,31 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
     setCategories(current => [...current, { id, name, kind: 'state' }])
     setCategoryName(''); setCategoryError(''); setAddingCategory(false)
   }
-  const [nodes, setNodes, onNodesChange] = useNodesState<AutomataNode>(isDfa ? dfaInitialNodes : isPda ? pdaInitialNodes : nfaInitialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(isDfa ? dfaInitialEdges : isPda ? pdaInitialEdges : nfaInitialEdges)
+  const [nodes, setNodes, onNodesChange] = useNodesState<AutomataNode>(isDfa ? dfaInitialNodes : isPda ? pdaInitialNodes : isTm ? tmInitial.nodes : nfaInitialNodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(isDfa ? dfaInitialEdges : isPda ? pdaInitialEdges : isTm ? tmInitial.edges : nfaInitialEdges)
   const simulationStates = nodes.map(node => ({ id: node.id, label: node.data.label, start: node.data.kind === 'start', accepting: isAcceptingNode(node.data) }))
   const simulationTransitions = edges.map(edge => ({ source: edge.source, target: edge.target, symbols: transitionSymbols(edge) }))
   const simulationKey = JSON.stringify([simulationStates, simulationTransitions, testString])
-  // A PDA run also keeps its moves, so the stack panel can show where it ended.
-  const [lastTest, setLastTest] = useState<{ key: string; result: SimulationResult & { steps?: PdaStep[] } } | null>(null)
+  // A PDA or TM run also keeps its moves, so the stack or tape panel can show where it ended.
+  type TestOutcome = { status: SimulationResult['status'] | Exclude<TmStatus, 'error'>; message: string; steps?: PdaStep[]; tmSteps?: TmStep[]; moves?: number }
+  const [lastTest, setLastTest] = useState<{ key: string; result: TestOutcome } | null>(null)
   const testResult = lastTest?.key === simulationKey ? lastTest.result : null
-  const runPdaTest = () => runPda(simulationStates, edges.map(edge => ({ id: edge.id, source: edge.source, target: edge.target, symbols: transitionSymbols(edge) })), testString)
-  const evaluate = (): SimulationResult & { steps?: PdaStep[] } => isPda ? runPdaTest() : simulateAutomaton(simulationStates, simulationTransitions, testString)
+  const ruleEdges = () => edges.map(edge => ({ id: edge.id, source: edge.source, target: edge.target, symbols: transitionSymbols(edge) }))
+  const runPdaTest = () => runPda(simulationStates, ruleEdges(), testString)
+  const runTmTest = (): TestOutcome => {
+    const run = runTm(simulationStates, ruleEdges(), testString)
+    return { status: run.status, message: run.message, tmSteps: run.steps, moves: run.moves }
+  }
+  const evaluate = (): TestOutcome => isPda ? runPdaTest() : isTm ? runTmTest() : simulateAutomaton(simulationStates, simulationTransitions, testString)
   const runTest = () => setLastTest({ key: simulationKey, result: evaluate() })
-  const [symbols, setSymbols] = useState<string[]>(['a', 'b'])
+  const [symbols, setSymbols] = useState<string[]>(isTm ? tmExamples[0].graph.symbols : ['a', 'b'])
   // Animates the walk a legal test string takes through the graph: one frame per edge taken
   // (an ε-move is its own frame), state-by-state, trying one NFA branch at a time until an
   // accepting one is found or every branch has been shown. `tick` only exists so the pulse on a
   // revisited state/edge (e.g. a self-loop read twice) remounts and replays instead of no-opping.
   // A PDA has a single attempt (its accepting run, or the furthest a failing one got) and `pdaSteps`
   // carries the stack after each of its frames.
-  const [animation, setAnimation] = useState<{ attempts: PathAttempt[]; attemptIndex: number; frameIndex: number; truncated: boolean; tick: number; pdaSteps: PdaStep[] | null } | null>(null)
+  const [animation, setAnimation] = useState<{ attempts: PathAttempt[]; attemptIndex: number; frameIndex: number; truncated: boolean; tick: number; pdaSteps: PdaStep[] | null; tmSteps?: TmStep[] } | null>(null)
   useEffect(() => { setLastTest(null); setAnimation(null) }, [simulationKey])
   useEffect(() => {
     if (!animation) return
@@ -593,7 +684,8 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
     const isLastFrameOfAttempt = animation.frameIndex === attempt.frames.length - 1
     const isLastAttempt = animation.attemptIndex === animation.attempts.length - 1
     const concluding = isLastFrameOfAttempt && (attempt.accepted || isLastAttempt)
-    const delay = attempt.accepted || isLastAttempt ? ANIM_FINAL_MS : ANIM_STEP_MS
+    const delay = animation.tmSteps && !isLastFrameOfAttempt ? (attempt.frames.length > 120 ? TM_FAST_STEP_MS : TM_STEP_MS)
+      : attempt.accepted || isLastAttempt ? ANIM_FINAL_MS : ANIM_STEP_MS
     const timer = setTimeout(() => {
       if (concluding) {
         const result = evaluate()
@@ -629,6 +721,13 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
         attemptIndex: 0, frameIndex: 0, truncated: false, tick: 0, pdaSteps: run.steps })
       return
     }
+    if (isTm) {
+      const run = runTmTest()
+      if (run.status === 'error' || !run.tmSteps?.length) { runTest(); return }
+      setAnimation({ attempts: [{ frames: run.tmSteps.map(step => ({ edgeId: step.edgeId, stateId: step.stateId })), accepted: run.status === 'accepted' }],
+        attemptIndex: 0, frameIndex: 0, truncated: false, tick: 0, pdaSteps: null, tmSteps: run.tmSteps })
+      return
+    }
     const startNode = starts[0]
     const simpleStates = nodes.map(node => ({ id: node.id, accepting: isAcceptingNode(node.data) }))
     const simpleEdges = edges.map(edge => ({ id: edge.id, source: edge.source, target: edge.target, symbols: transitionSymbols(edge) }))
@@ -636,7 +735,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
     if (!attempts.length) { runTest(); return }
     setAnimation({ attempts, attemptIndex: 0, frameIndex: 0, truncated, tick: 0, pdaSteps: null })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, edges, testString, symbols, isPda])
+  }, [nodes, edges, testString, symbols, isPda, isTm])
   const activeAttempt = animation ? animation.attempts[animation.attemptIndex] : null
   const activeFrame = activeAttempt ? activeAttempt.frames[animation!.frameIndex] : null
   const activeKind: 'active' | 'accept' | 'reject' | null = !activeFrame || !animation ? null
@@ -648,6 +747,10 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
   const stackSteps = isPda ? animation?.pdaSteps ?? testResult?.steps ?? null : null
   const stackIndex = animation?.pdaSteps ? animation.frameIndex : (stackSteps?.length ?? 0) - 1
   const stackStep = stackSteps?.[stackIndex] ?? null
+  const tapeSteps = isTm ? animation?.tmSteps ?? testResult?.tmSteps ?? null : null
+  const tapeIndex = animation?.tmSteps ? animation.frameIndex : (tapeSteps?.length ?? 0) - 1
+  const tapeStep = tapeSteps?.[tapeIndex] ?? null
+  const tapeMoves = animation?.tmSteps ? animation.tmSteps.length - 1 : testResult?.moves ?? 0
   const [dialog, setDialog] = useState<DialogState | null>(null)
   const [newSymbolDraft, setNewSymbolDraft] = useState('')
   const [storageReady, setStorageReady] = useState(false)
@@ -698,6 +801,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
   const conflicts = useMemo(() => symbolConflicts(graph), [graph])
   const missing = useMemo(() => missingDfaTransitions(graph), [graph])
   const epsilonCount = useMemo(() => countEpsilonEdges(graph), [graph])
+  const tmClashes = useMemo(() => isTm ? tmConflicts(graph) : [], [isTm, graph])
   useEffect(() => { setConvertError('') }, [savedJson])
   const assignSymbol = useCallback((edgeId: string, symbol: string) => {
     if (mode === 'dfa') {
@@ -708,6 +812,14 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
       const rule = parsePdaRule(symbol)
       if (!rule) return 'That is not a valid rule.'
       if (rule.input && !symbols.includes(rule.input)) setSymbols(current => current.includes(rule.input) ? current : [...current, rule.input])
+    }
+    if (mode === 'tm') {
+      const rule = parseTmRule(symbol)
+      if (!rule) return 'That is not a valid rule.'
+      const edge = edges.find(item => item.id === edgeId)
+      const adding = !!edge && !transitionSymbols(edge).includes(symbol)
+      const clash = adding && edges.some(item => item.source === edge.source && transitionSymbols(item).some(raw => parseTmRule(raw)?.read === rule.read))
+      if (clash) return `This state already has a rule that reads ${rule.read}. A Turing machine here is deterministic, so remove that one first.`
     }
     setEdges(current => current.map(edge => {
       if (edge.id !== edgeId) return edge
@@ -722,13 +834,16 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
   const addSymbol = useCallback((symbol: string) => {
     if (Array.from(symbol).length !== 1 || !symbol.trim()) return 'Enter exactly one character.'
     if (symbol === 'ε') return mode === 'dfa' ? 'DFA transitions cannot use ε. Switch to the NFA lab for empty moves.'
-      : mode === 'pda' ? 'ε is always available: leave read, pop or push blank in a rule.' : 'ε is already available and cannot be changed.'
+      : mode === 'pda' ? 'ε is always available: leave read, pop or push blank in a rule.'
+      : mode === 'tm' ? 'A Turing machine has no ε-moves. Every rule reads one tape symbol.' : 'ε is already available and cannot be changed.'
+    if (mode === 'tm' && (symbol === BLANK || symbol === '_')) return 'The blank ⊔ is on the tape already and cannot be part of the input alphabet.'
     if (symbols.includes(symbol)) return 'This character already exists.'
     setSymbols(current => current.includes(symbol) ? current : [...current, symbol])
     return null
   }, [mode, symbols])
   // On a PDA arrow the "symbols" are rules, so removing a character drops every rule that reads it.
-  const usesSymbol = useCallback((item: string, symbol: string) => mode === 'pda' ? parsePdaRule(item)?.input === symbol : item === symbol, [mode])
+  // A TM rule reads tape symbols, which may still be written by other rules, so a TM keeps its rules.
+  const usesSymbol = useCallback((item: string, symbol: string) => mode === 'pda' ? parsePdaRule(item)?.input === symbol : mode === 'tm' ? false : item === symbol, [mode])
   const removeSymbol = useCallback((symbol: string) => {
     if (symbol === 'ε') return
     setSymbols(current => current.filter(item => item !== symbol))
@@ -781,18 +896,20 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
     const focused = focusedEdge?.id === edge.id
     const emphasized = focused || focusedNodeId === edge.source
     const dimmed = !!(focusedEdge || focusedNodeId) && !emphasized
-    return { ...edge, type: 'routed', zIndex: emphasized ? 5 : 0, label: isPda ? pdaEdgeCaption(transitionSymbols(edge)) : edge.label,
+    return { ...edge, type: 'routed', zIndex: emphasized ? 5 : 0, label: isPda ? pdaEdgeCaption(transitionSymbols(edge)) : isTm ? tmEdgeCaption(transitionSymbols(edge)) : edge.label,
       data: { ...edge.data, editingDisabled: !!connectingId, obstacles: nodes.filter(node => node.id !== edge.source && node.id !== edge.target).map(node => {
         const width = node.measured?.width ?? 74, height = node.measured?.height ?? 74
         return { x: node.position.x + width/2, y: node.position.y + height/2, radius: Math.max(width,height)/2 }
       }), curved: reversePair, color: sourceColor(nodes.find(node => node.id === edge.source) ?? { id: edge.source }),
         focused, emphasized, dimmed, animating: !!activeFrame && edge.id === activeFrame.edgeId, animatingTick: animation?.tick } }
-  }), [edges, nodes, focusedEdge, focusedNodeId, connectingId, activeFrame, animation, isPda])
+  }), [edges, nodes, focusedEdge, focusedNodeId, connectingId, activeFrame, animation, isPda, isTm])
 
   // A PDA self-loop with many rules stacks a tall caption above its state, which fitView doesn't
   // measure, so leave room for the tallest one at the top of the initial view.
-  const tallestLoop = isPda ? Math.max(0, ...edges.filter(edge => edge.source === edge.target).map(edge => transitionSymbols(edge).length)) : 0
-  const fitViewOptions = useMemo(() => ({ maxZoom: 1, padding: tallestLoop > 1 ? { top: `${110 + tallestLoop * 18}px` as const, x: 0.35, bottom: 0.35 } : 0.35 }), [tallestLoop])
+  const tallestLoop = hasRules ? Math.max(0, ...edges.filter(edge => edge.source === edge.target).map(edge => transitionSymbols(edge).length)) : 0
+  // A Turing machine's tape strip sits across the top of the canvas, so its graph starts below it.
+  const fitViewOptions = useMemo(() => ({ maxZoom: 1, padding: isTm ? { top: `${120 + tallestLoop * 16}px` as const, x: 0.12, bottom: '64px' as const }
+    : tallestLoop > 1 ? { top: `${110 + tallestLoop * 18}px` as const, x: 0.35, bottom: 0.35 } : 0.35 }), [tallestLoop, isTm])
 
   const applyNewEdge = useCallback((connection: Connection, current: Edge[], id?: string) => {
     const nextSymbols = defaultEdgeSymbols(mode, connection.source ?? '', symbols, current)
@@ -982,7 +1099,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
   }, [exercise, cancelConnection, nodes, edges, symbols, exerciseKey, onSolved])
   const exerciseVerdict = exerciseCheck?.key === exerciseKey ? exerciseCheck.verdict : null
 
-  const loadPdaExample = useCallback((example: AutomatonGraph) => {
+  const loadExample = useCallback((example: AutomatonGraph) => {
     cancelConnection()
     const flow = graphToFlow(example)
     setNodes(flow.nodes)
@@ -1008,8 +1125,8 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
   }, [regexInput, setNodes, setEdges])
 
   const exportJson = useCallback(() => downloadFile(`automata-lab-${mode}.json`, savedJson, 'application/json'), [savedJson, mode])
-  const exportSvg = useCallback(() => downloadFile(`automata-lab-${mode}.svg`, graphToSvg(graph, undefined, isPda ? pdaEdgeCaption : undefined), 'image/svg+xml'), [graph, mode, isPda])
-  const exportTikz = useCallback(() => downloadFile(`automata-lab-${mode}.tex`, graphToTikz(graph, { pda: isPda }), 'application/x-tex'), [graph, mode, isPda])
+  const exportSvg = useCallback(() => downloadFile(`automata-lab-${mode}.svg`, graphToSvg(graph, undefined, isPda ? pdaEdgeCaption : isTm ? tmEdgeCaption : undefined), 'image/svg+xml'), [graph, mode, isPda, isTm])
+  const exportTikz = useCallback(() => downloadFile(`automata-lab-${mode}.tex`, graphToTikz(graph, { pda: isPda, tm: isTm }), 'application/x-tex'), [graph, mode, isPda, isTm])
   // undefined: closed; null: open while the link is being made.
   const [sharing, setSharing] = useState<string | null | undefined>(undefined)
   const openShare = useCallback(() => {
@@ -1154,9 +1271,10 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
   // random string or an accepted example should draw from.
   const activeAlphabet = useMemo(() => {
     if (isPda) return pdaInputsInUse(graph)
+    if (isTm) return symbols
     const used = new Set(graph.transitions.flatMap(transition => transition.symbols).filter(symbol => symbol !== 'ε'))
     return symbols.filter(symbol => used.has(symbol))
-  }, [graph, symbols, isPda])
+  }, [graph, symbols, isPda, isTm])
   const onRandomString = useCallback(() => {
     cancelConnection()
     setTestString(randomTestString(activeAlphabet))
@@ -1168,6 +1286,10 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
     cancelConnection()
     setExamples(nextExampleBatch(examples, () => {
       if (isPda) return { pool: findPdaAcceptedStrings(graph, EXAMPLE_POOL_SIZE, PDA_EXAMPLE_LENGTH), page: 0, maxLength: PDA_EXAMPLE_LENGTH }
+      if (isTm) {
+        if (tmClashes.length) { setDialog({ kind: 'alert', tone: 'error', title: 'Not deterministic yet', message: 'Some state has two rules that read the same symbol. Open the diagnostics above to see which.' }); return null }
+        return { pool: findTmAcceptedStrings(graph, EXAMPLE_POOL_SIZE, TM_EXAMPLE_LENGTH), page: 0, maxLength: TM_EXAMPLE_LENGTH }
+      }
       if (isDfa) {
         if (!isStandardDfa) { setDialog({ kind: 'alert', tone: 'error', title: 'Not a standard DFA yet', message: 'Finish the design (one start state, no conflicts, no missing transitions) before generating examples.' }); return null }
         return { pool: findAcceptedStrings(completeWithSink(graph), EXAMPLE_POOL_SIZE, EXAMPLE_LENGTH), page: 0, maxLength: EXAMPLE_LENGTH }
@@ -1176,7 +1298,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
       if (!result.ok) { setDialog({ kind: 'alert', tone: 'error', title: 'Cannot generate examples', message: result.message }); return null }
       return { pool: findAcceptedStrings(result.graph, EXAMPLE_POOL_SIZE, EXAMPLE_LENGTH), page: 0, maxLength: EXAMPLE_LENGTH }
     }))
-  }, [cancelConnection, isDfa, isPda, isStandardDfa, graph, examples])
+  }, [cancelConnection, isDfa, isPda, isTm, tmClashes, isStandardDfa, graph, examples])
 
   // Presentation-only derivations for the status strip and its diagnostics panel.
   const branching = conflicts.filter(item => item.symbol !== 'ε')
@@ -1193,15 +1315,18 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
   ].filter(Boolean)
   const pdaChoices = useMemo(() => isPda ? pdaBranching(graph) : [], [isPda, graph])
   const pdaRuleCount = isPda ? countPdaRules(graph) : 0
+  const tmRuleCount = isTm ? countTmRules(graph) : 0
   const diagnosticSummary = isDfa
     ? (isStandardDfa ? 'Complete DFA' : diagnosticIssues.join(' · ') || 'Not deterministic')
     : isPda ? `${pdaRuleCount} rule${pdaRuleCount === 1 ? '' : 's'} · ${pdaChoices.length ? 'Nondeterministic' : 'Deterministic'}`
+    : isTm ? `${tmRuleCount} rule${tmRuleCount === 1 ? '' : 's'} · ${tmClashes.length ? `${tmClashes.length} conflict${tmClashes.length === 1 ? '' : 's'}` : 'Deterministic'}`
     : `${epsilonCount} ε · ${branching.length ? `${branching.length} branching` : 'No branching'}`
-  const diagnosticTone = isDfa ? (isStandardDfa ? 'is-good' : 'is-bad') : ''
+  const diagnosticTone = isDfa ? (isStandardDfa ? 'is-good' : 'is-bad') : isTm && tmClashes.length ? 'is-bad' : ''
   const saveFailed = storageBlocked || saveStatus.startsWith('Could not')
   const testHint = isDfa
     ? (isStandardDfa ? 'Type a string, then press Enter or Run animated.' : 'Tests run once this is a complete DFA — open the diagnostics above to see what is missing.')
     : isPda ? 'Press Enter or Run animated to watch the stack move by move. Leave blank to test ε.'
+    : isTm ? 'Press Enter or Run animated to watch the head move over the tape. Leave blank to test ε.'
     : 'Press Enter or Run animated. Leave blank to test ε.'
 
   if (!storageReady) return <main className="app-shell"><p role="status">Loading local graph…</p></main>
@@ -1209,8 +1334,8 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
     <header className="topbar">
       <div className="brand">
         <Link className="brand-home" href="/" title="Automata Lab home"><span className="brand-mark" aria-hidden="true"><Zap size={14} /></span><span className="brand-name">Automata Lab</span></Link>
-        <span className={`mode-badge is-${mode}`} title={isDfa ? 'Deterministic finite automaton' : isPda ? 'Pushdown automaton' : 'Nondeterministic finite automaton'}>{mode.toUpperCase()}</span>
-        <h1 className="sr-only">{isPda ? 'Pushdown automaton' : `${isDfa ? 'Deterministic' : 'Nondeterministic'} finite automaton`} editor: {tabTitle}</h1>
+        <span className={`mode-badge is-${mode}`} title={isDfa ? 'Deterministic finite automaton' : isPda ? 'Pushdown automaton' : isTm ? 'Turing machine' : 'Nondeterministic finite automaton'}>{mode.toUpperCase()}</span>
+        <h1 className="sr-only">{isPda ? 'Pushdown automaton' : isTm ? 'Turing machine' : `${isDfa ? 'Deterministic' : 'Nondeterministic'} finite automaton`} editor: {tabTitle}</h1>
       </div>
       <span className="toolbar-divider" aria-hidden="true" />
       <div className="toolbar-group" role="group" aria-label="History">
@@ -1233,11 +1358,14 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
         <input ref={importInputRef} type="file" accept="application/json" className="file-input-hidden"
           onChange={event => { const file = event.target.files?.[0]; if (file) importJson(file); event.target.value = '' }} />
         <div className="regex-popover-wrap">
-          <Dropdown label={`${mode.toUpperCase()} tools`} title={isDfa ? 'Complete, minimize or copy this DFA' : isPda ? 'Load an example PDA' : 'Convert this NFA or build one from a regex'}
+          <Dropdown label={`${mode.toUpperCase()} tools`} title={isDfa ? 'Complete, minimize or copy this DFA' : isPda ? 'Load an example PDA' : isTm ? 'Load an example Turing machine' : 'Convert this NFA or build one from a regex'}
             trigger={<><Wrench size={15} aria-hidden="true" /> {mode.toUpperCase()} tools <ChevronDown size={13} className="caret" aria-hidden="true" /></>}>
-            {close => isPda ? <>
+            {close => isTm ? <>
+              {tmExamples.map(example => <MenuItem key={example.name} icon={Layers} label={`Example: ${example.name}`} hint={`${example.hint}. Replaces this graph`}
+                onSelect={() => loadExample(example.graph)} close={close} />)}
+            </> : isPda ? <>
               {pdaExamples.map(example => <MenuItem key={example.name} icon={Layers} label={`Example: ${example.name}`} hint={`${example.hint}. Replaces this graph`}
-                onSelect={() => loadPdaExample(example.graph)} close={close} />)}
+                onSelect={() => loadExample(example.graph)} close={close} />)}
               <div className="menu-separator" role="separator" />
               <MenuItem icon={ArrowRightLeft} label="Build one from a grammar" hint="Open a CFG tab, then CFG tools → Convert to PDA" onSelect={() => onConvert('cfg')} close={close} />
             </> : isDfa ? <>
@@ -1300,13 +1428,14 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
         <Dropdown className="sidebar-help" label={`${mode.toUpperCase()} rules and editing tips`} role="dialog" triggerClassName="icon-button" title="Rules and editing tips"
           trigger={<CircleQuestionMark size={16} aria-hidden="true" />}>
           {() => <div className="help-popover">
-            <h3>{isDfa ? 'Deterministic FA' : isPda ? 'Pushdown automaton' : 'Nondeterministic FA'}</h3>
+            <h3>{isDfa ? 'Deterministic FA' : isPda ? 'Pushdown automaton' : isTm ? 'Turing machine' : 'Nondeterministic FA'}</h3>
             <p>{isDfa ? 'One successor per (state, symbol). No ε. Missing arrows reject the input; optionally complete the graph with a sink.'
+              : isTm ? 'A single-tape deterministic Turing machine, as in Sipser. Each rule reads the symbol under the head, writes one (_ is the blank ⊔) and moves L or R. The tape is infinite to the right; moving left from the first cell stays put. Entering an accepting state accepts, and a missing rule rejects. A run that repeats a configuration loops forever.'
               : isPda ? 'An NFA with a stack. Each rule reads a character, pops the top of the stack and pushes a string; any part can be ε. The stack starts empty, so push a bottom marker like $ first. A string is accepted when all of it is read and some run is in an accepting state.'
               : 'ε-moves and multiple successors are allowed. Convert to an equivalent DFA when you want the deterministic machine.'}</p>
             <ul>
               <li>Drag a component onto the canvas to add a state.</li>
-              <li>Click a state, then a target (or the same state for a loop) to draw a transition. Click an arrow to pick its {isPda ? 'rules' : 'characters'}.</li>
+              <li>Click a state, then a target (or the same state for a loop) to draw a transition. Click an arrow to pick its {hasRules ? 'rules' : 'characters'}.</li>
               <li>Drag a state back onto this panel to delete it and its transitions.</li>
               <li>Click <b>State</b> or <b>Add category</b> to create a custom state category.</li>
               <li>Select a start state to toggle whether it also accepts.</li>
@@ -1343,7 +1472,12 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
             title="Show all diagnostics" trigger={<>{isDfa ? (isStandardDfa ? <CircleCheck size={13} aria-hidden="true" /> : <TriangleAlert size={13} aria-hidden="true" />) : null}<span>{diagnosticSummary}</span><ChevronDown size={12} className="caret" aria-hidden="true" /></>}>
             {() => <div className="diagnostics-panel">
               <dl className="diagnostics-facts">
-                {isPda ? <>
+                {isTm ? <>
+                  <div><dt>Rules</dt><dd>{tmRuleCount}</dd></div>
+                  <div><dt>Deterministic</dt><dd className={tmClashes.length ? 'is-bad' : 'is-good'}>{tmClashes.length ? 'No' : 'Yes'}</dd></div>
+                  <div><dt>Start states</dt><dd className={nodeCounts.start === 1 ? 'is-good' : 'is-bad'}>{nodeCounts.start} <small>(exactly 1 needed)</small></dd></div>
+                  <div><dt>Tape alphabet</dt><dd><code>{tapeAlphabet(graph).join(' ')}</code></dd></div>
+                </> : isPda ? <>
                   <div><dt>Rules</dt><dd>{pdaRuleCount}</dd></div>
                   <div><dt>Deterministic</dt><dd>{pdaChoices.length ? 'No' : 'Yes'}</dd></div>
                   <div><dt>Start states</dt><dd className={nodeCounts.start === 1 ? 'is-good' : 'is-bad'}>{nodeCounts.start} <small>(exactly 1 needed)</small></dd></div>
@@ -1363,7 +1497,13 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
                 </li>)}</ul> : <p className="diagnostics-empty">None</p>}
                 {missing.length > 0 && <p className="diagnostics-tip">Missing characters reject during a test. DFA tools → Complete with sink fills them all.</p>}
               </section>}
-              {isPda ? <section>
+              {isTm ? <section>
+                <h3>Conflicts <span className="count">{tmClashes.length}</span></h3>
+                {tmClashes.length ? <ul className="diagnostics-list">{tmClashes.map((item, index) => <li key={index}>
+                  <b>{item.sourceLabel}</b><span className="diagnostics-symbols"><code>{item.first}</code><code>{item.second}</code></span>
+                </li>)}</ul> : <p className="diagnostics-empty">None</p>}
+                <p className="diagnostics-tip">Each state may have one rule per symbol it reads. Symbols with no rule reject, like an arrow to q<sub>reject</sub>.</p>
+              </section> : isPda ? <section>
                 <h3>Branching points <span className="count">{pdaChoices.length}</span></h3>
                 {pdaChoices.length ? <ul className="diagnostics-list">{pdaChoices.map((item, index) => <li key={index}>
                   <b>{item.sourceLabel}</b><span className="diagnostics-symbols"><code>{item.first}</code><code>{item.second}</code></span>
@@ -1382,11 +1522,13 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
         <div className="toolbar-actions">{selectedStart && <button className="tool-button" type="button" onClick={toggleStartAccepting} aria-pressed={!!selectedStart.data.accepting}>◎ <span>{selectedStart.data.accepting ? 'Start accepts' : 'Start rejects ε'}</span></button>}</div>
       </div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }} onMouseMove={onPaneMouseMove}>{reshapeTick > 0 && <div key={reshapeTick} className="reshape-flash" aria-hidden="true" />}{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} color={sourceColor(connectingNode)} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, data: { ...node.data, related: node.id === focusedEdge?.source || node.id === focusedEdge?.target, onRename: () => renameNode(node.id), onDelete: () => deleteNode(node.id), animating: activeFrame && node.id === activeFrame.stateId ? activeKind ?? undefined : undefined, animatingTick: animation?.tick }, selected: node.id === selectedId || node.id === connectingId, draggable: true }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeClick={onEdgeClick} onEdgeMouseEnter={onEdgeMouseEnter} onEdgeMouseLeave={onEdgeMouseLeave} onNodeClick={onNodeClick} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop} autoPanOnNodeDrag={false} nodeDragThreshold={5} nodeClickDistance={5} onNodesDelete={onNodesDelete} deleteKeyCode={['Backspace', 'Delete']} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={fitViewOptions} minZoom={0.35} maxZoom={2}><Background variant={BackgroundVariant.Lines} gap={28} lineWidth={1} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => inkColor(sourceColor(node as AutomataNode))} maskColor="var(--minimap-mask)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target (or source for a loop) · Drag to move · Esc to cancel</div> : nodes.length === 0 ? <div className="canvas-empty-hint">Drag a state in from the sidebar to get started</div> : <div className="canvas-hint">Click a state to connect · Drag a state to move</div>}<WorkspaceCat result={testResult} watching={!!animation} />
         {isPda && <StackPanel step={stackStep} index={stackIndex} total={stackSteps?.length ?? 0} inputLength={Array.from(testString).length} />}
+        {isTm && <TapePanel step={tapeStep} index={tapeIndex} total={tapeSteps?.length ?? 0} moves={tapeMoves}
+          stateLabel={nodes.find(node => node.id === tapeStep?.stateId)?.data.label ?? ''} />}
       </div>
         <section className="string-test-panel" aria-label="Alphabet and string test" onKeyDown={event => event.stopPropagation()}>
           <button className="string-test-toggle" type="button" aria-expanded={testPanelOpen} aria-controls="string-test-content"
             onClick={() => { cancelConnection(); setTestPanelOpen(open => !open) }}>
-            <span className="panel-bar-title">Alphabet &amp; test{testResult && <span className={`test-result-badge is-${testResult.status}`}>{testResult.status === 'accepted' ? 'Accepted' : testResult.status === 'rejected' ? 'Rejected' : 'Cannot run'}</span>}</span>
+            <span className="panel-bar-title">Alphabet &amp; test{testResult && <span className={`test-result-badge is-${testResult.status}`}>{resultLabel(testResult.status)}</span>}</span>
             <span className="string-test-summary">{testPanelOpen ? 'Collapse' : 'Expand'} <span aria-hidden="true">{testPanelOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}</span></span>
           </button>
           <div id="string-test-content" className="string-test-content" hidden={!testPanelOpen}>
@@ -1437,7 +1579,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
                   <button className="string-test-instant" type="button" onClick={onRunTestInstantClick} aria-describedby="string-test-status" title="Same check, but skips the animated walk and shows the result right away — useful when an NFA has a lot of branches to try"><Zap size={14} aria-hidden="true" /> Run instantly</button>
                 </div>
               </div>
-              <div id="string-test-status" role="status" className={`string-test-footer ${testResult ? `test-result is-${testResult.status}` : ''}`}>{testResult ? <><strong>{testResult.status === 'accepted' ? 'Accepted' : testResult.status === 'rejected' ? 'Rejected' : 'Cannot run'}</strong> · {testResult.message}</> : testHint}</div>
+              <div id="string-test-status" role="status" className={`string-test-footer ${testResult ? `test-result is-${testResult.status}` : ''}`}>{testResult ? <><strong>{resultLabel(testResult.status)}</strong> · {testResult.message}</> : testHint}</div>
               <ExampleStrings batch={examples} noun="accepted strings" emptyText="No accepted string found within a reasonable length."
                 onGenerate={generateExamples} onUse={example => { setTestString(example); testInputRef.current?.focus() }} />
             </section>
@@ -1607,6 +1749,7 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
       <button type="button" className="tab-add is-dfa" aria-label="New DFA tab" title="New DFA tab" onClick={() => openTab('dfa')}>+ DFA</button>
       <button type="button" className="tab-add is-nfa" aria-label="New NFA tab" title="New NFA tab" onClick={() => openTab('nfa')}>+ NFA</button>
       <button type="button" className="tab-add is-pda" aria-label="New PDA tab" title="New PDA tab" onClick={() => openTab('pda')}>+ PDA</button>
+      <button type="button" className="tab-add is-tm" aria-label="New TM tab" title="New Turing machine tab" onClick={() => openTab('tm')}>+ TM</button>
       <button type="button" className="tab-add is-cfg" aria-label="New CFG tab" title="New grammar tab" onClick={() => openTab('cfg')}>+ CFG</button>
       {ai.button}
       <button type="button" className="tab-add is-practice" aria-label="Practice" title="Practice: build a machine for a language and check it" onClick={() => setPracticeOpen(true)}>

@@ -3,9 +3,10 @@ import { parseGrammar } from './cfg'
 import { graphToSavedEditor, readSavedEditor } from './editor-storage'
 import { layoutPoint } from './nfa-to-dfa'
 import { formatPdaRule, parsePdaRule } from './pda'
+import { BLANK, formatTmRule, normalizeTapeSymbol, parseTmRule } from './turing'
 
 /**
- * Building a DFA/NFA/PDA/CFG from a sentence ("strings over {a,b} ending in ab") or a photo of a
+ * Building a DFA/NFA/PDA/TM/CFG from a sentence ("strings over {a,b} ending in ab") or a photo of a
  * hand-drawn diagram. The site has no server, so the browser calls a vision LLM directly with the
  * user's own key; this file holds the provider-independent parts: the prompt, and turning the
  * model's JSON reply into something the editor can load. Nothing the model says is trusted — every
@@ -38,9 +39,9 @@ export function systemPrompt(): string {
 
 Shape:
 {
-  "type": "dfa" | "nfa" | "pda" | "cfg",
+  "type": "dfa" | "nfa" | "pda" | "tm" | "cfg",
   "title": short name, at most 24 characters,
-  "alphabet": ["a", "b"],            // input characters, each exactly one character
+  "alphabet": ["a", "b"],            // input characters, each exactly one character (for a TM: the input alphabet only, not tape-only symbols)
   "states": [{ "name": "q0", "start": true, "accept": false }, ...],
   "transitions": [{ "from": "q0", "to": "q1", "symbols": ["a"] }, ...],
   "grammar": "S → aSb | ε",           // only for type "cfg", one rule per line
@@ -53,13 +54,15 @@ Rules:
 - Every symbol is one character. Use "ε" for the empty string (NFA and PDA only, never in a DFA).
 - DFA: deterministic; at most one move per state and character. Missing moves are allowed (they reject).
 - PDA: each entry in "symbols" is a rule "a,X→YZ": read a (or ε), pop X (or ε), push YZ (or ε); the first pushed character ends on top. The stack starts empty, so push a bottom marker like $ yourself if needed. Acceptance is by final state after reading all input.
+- TM: a single-tape deterministic Turing machine as in Sipser. Each entry in "symbols" is a rule "a→b,R": read a, write b, move L or R (no staying put). "_" is the blank. The tape is infinite to the right only, the input starts at the left end with the head on its first symbol, and moving left from the first cell stays put. Entering an "accept": true state halts and accepts. A missing rule halts and rejects, so leave the reject state out. At most one rule per state and read symbol. Tape-only marker symbols like x or y are fine in rules. Mark visited cells instead of shifting the input when you can.
 - CFG: nonterminals are single uppercase letters A–Z, the first rule's left side is the start symbol, terminals are any other single characters, ε is the empty string. Leave states and transitions out.
 - Keep machines small and correct: prefer the minimal DFA, and name states q0, q1, ... unless names are given.
 - When reading a photo: copy the drawing faithfully (its state names, start arrow, double circles for accepting states, every edge label) instead of fixing or redesigning it. An unlabelled arrow into a state marks the start state.`
 }
 
 export function userPrompt(target: AiTarget, description: string, fromImage: boolean): string {
-  const kind = target === 'auto' ? 'whichever of DFA, NFA, PDA or CFG fits best' : `a ${target.toUpperCase()}`
+  const kind = target === 'auto' ? 'whichever of DFA, NFA, PDA or CFG fits best (a Turing machine only if the user asks for one or nothing simpler can)'
+    : target === 'tm' ? 'a Turing machine (type "tm")' : `a ${target.toUpperCase()}`
   const task = fromImage
     ? `Recognize the automaton or grammar in this photo and return it as ${kind}.`
     : `Build ${kind} for this language.`
@@ -78,7 +81,7 @@ export function extractJson(text: string): unknown {
 }
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
-const isTabMode = (value: unknown): value is TabMode => value === 'dfa' || value === 'nfa' || value === 'pda' || value === 'cfg'
+const isTabMode = (value: unknown): value is TabMode => value === 'dfa' || value === 'nfa' || value === 'pda' || value === 'tm' || value === 'cfg'
 
 function normalizeSymbol(raw: string): string {
   const value = raw.trim()
@@ -92,6 +95,21 @@ function normalizePdaRule(raw: string): string | null {
   const part = (value: string) => normalizeSymbol(value)
   const rule = parsePdaRule(`${part(match[1])},${part(match[2])}→${part(match[3])}`)
   return rule ? formatPdaRule(rule) : null
+}
+
+/**
+ * Accepts the ways a model tends to write a TM rule: "a→b,R", "a->b,R", "a/b,R", "a;b,R", "a,b,R",
+ * "a→R" (write what was read), with "_", "B" or "⊔" for the blank and lowercase moves.
+ */
+function normalizeTmRule(raw: string): string | null {
+  const compact = raw.replace(/\s+/g, '').replace(/->|⟶|→/, '→')
+  const match = compact.match(/^(.)(?:→|\/|;|,)(?:(.)[,;/]?)?([LRlr])$/u)
+  if (!match) return null
+  const symbol = (value: string) => value === 'B' ? BLANK : normalizeTapeSymbol(value)
+  const read = symbol(match[1])
+  const write = match[2] === undefined ? read : symbol(match[2])
+  const rule = parseTmRule(formatTmRule({ read, write, move: match[3].toUpperCase() as 'L' | 'R' }))
+  return rule ? formatTmRule(rule) : null
 }
 
 /** Lay states out left to right by distance from the start state, like the regex and subset constructions. */
@@ -123,7 +141,7 @@ export function specToResult(raw: unknown, target: AiTarget): AiResult {
   if (!record(raw)) return { ok: false, message: 'The model reply was not a JSON object.' }
   if (typeof raw.error === 'string' && raw.error.trim()) return { ok: false, message: raw.error.trim() }
   const type = isTabMode(raw.type) ? raw.type : target !== 'auto' ? target : null
-  if (!type) return { ok: false, message: 'The model did not say whether this is a DFA, NFA, PDA or CFG.' }
+  if (!type) return { ok: false, message: 'The model did not say whether this is a DFA, NFA, PDA, TM or CFG.' }
   const title = (typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : `AI ${type.toUpperCase()}`).slice(0, 32)
   const explanation = typeof raw.explanation === 'string' ? raw.explanation.trim() : ''
 
@@ -161,6 +179,9 @@ export function specToResult(raw: unknown, target: AiTarget): AiResult {
   }
   // Edges between the same pair of states are one edge with several symbols in the editor.
   const merged = new Map<string, { source: string; target: string; symbols: string[] }>()
+  // A TM's rules read tape symbols, which include markers the input never contains.
+  const readSeen = new Set<string>()
+  const tapeReads = new Set<string>()
   for (const item of Array.isArray(raw.transitions) ? raw.transitions : []) {
     if (!record(item) || typeof item.from !== 'string' || typeof item.to !== 'string') return { ok: false, message: 'A transition is missing its from/to state.' }
     const source = idByName.get(item.from.trim())
@@ -172,7 +193,15 @@ export function specToResult(raw: unknown, target: AiTarget): AiResult {
     for (const rawSymbol of symbols) {
       if (typeof rawSymbol !== 'string') continue
       let symbol: string
-      if (type === 'pda') {
+      if (type === 'tm') {
+        const rule = normalizeTmRule(rawSymbol)
+        if (!rule) return { ok: false, message: `"${rawSymbol}" is not a Turing machine rule like a→b,R.` }
+        symbol = rule
+        const read = parseTmRule(rule)!.read
+        if (readSeen.has(`${source}\u0001${read}`)) return { ok: false, message: `Not deterministic: state "${item.from.trim()}" has two rules that read ${read}.` }
+        readSeen.add(`${source}\u0001${read}`)
+        if (read !== BLANK) tapeReads.add(read)
+      } else if (type === 'pda') {
         const rule = normalizePdaRule(rawSymbol)
         if (!rule) return { ok: false, message: `"${rawSymbol}" is not a PDA rule like a,X→YZ.` }
         symbol = rule
@@ -189,6 +218,10 @@ export function specToResult(raw: unknown, target: AiTarget): AiResult {
       if (!edge.symbols.includes(symbol)) edge.symbols.push(symbol)
     }
     merged.set(key, edge)
+  }
+  if (type === 'tm') {
+    alphabet.delete(BLANK); alphabet.delete('_')
+    if (!alphabet.size) for (const read of tapeReads) alphabet.add(read)
   }
   for (const symbol of alphabet) if (Array.from(symbol).length !== 1) return { ok: false, message: `Alphabet symbol "${symbol}" must be a single character.` }
 

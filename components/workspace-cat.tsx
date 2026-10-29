@@ -7,7 +7,7 @@ const HIDDEN_KEY = 'automata-lab-cat'
 const SLEEP_AFTER_MS = 30_000
 const PET_LINES = ['Meow!', 'Purrr…', 'Mrrp?', '♪ nya ♪']
 
-type Outcome = 'accepted' | 'rejected' | 'error'
+type Outcome = 'accepted' | 'rejected' | 'error' | 'loops' | 'undecided'
 type Mood = 'idle' | 'happy' | 'sad' | 'petted' | 'sleep'
 
 /**
@@ -93,6 +93,7 @@ export function WorkspaceCat({ result, watching = false, placement = 'right' }: 
     lastActivity.current = Date.now()
     if (result.status === 'accepted') react('happy', 'Accepted! ✨', 2400)
     else if (result.status === 'rejected') react('sad', 'Rejected… 😿', 2400)
+    else if (result.status === 'loops' || result.status === 'undecided') react('sad', 'Round and round… 🌀', 2400)
     else react('sad', 'Hmm? 🤔', 2000)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result])
