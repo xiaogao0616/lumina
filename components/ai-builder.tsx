@@ -101,6 +101,7 @@ function AiBuilderDialog({ initial, onStart, onClose }: {
           <option value="dfa">DFA</option>
           <option value="nfa">NFA</option>
           <option value="pda">PDA</option>
+          <option value="tm">Turing machine</option>
           <option value="cfg">CFG</option>
         </select>
       </label>
@@ -114,7 +115,7 @@ function AiBuilderDialog({ initial, onStart, onClose }: {
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={event => { void pickPhoto(event.target.files?.[0]); event.target.value = '' }} />
       </div>}
       <textarea className="modal-input ai-textarea" value={description} rows={source === 'text' ? 4 : 2} onChange={event => setDescription(event.target.value)}
-        placeholder={source === 'text' ? 'e.g. strings over {a, b} with an even number of a’s and ending in b' : 'Optional notes, e.g. “q2 is accepting, the label on the loop is b”'}
+        placeholder={source === 'text' ? (target === 'tm' ? 'e.g. a Turing machine for strings of a’s, b’s and c’s with equal counts in order, aⁿbⁿcⁿ' : 'e.g. strings over {a, b} with an even number of a’s and ending in b') : 'Optional notes, e.g. “q2 is accepting, the label on the loop is b”'}
         onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) run() }} />
       <details className="ai-settings" open={settingsOpen} onToggle={event => setSettingsOpen((event.target as HTMLDetailsElement).open)}>
         <summary>AI service{settings.apiKey ? '' : ' (add your API key)'}</summary>

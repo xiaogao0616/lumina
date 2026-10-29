@@ -1,5 +1,6 @@
 import { isAcceptingState, type AutomatonGraph } from './automaton-graph'
 import { parsePdaRule } from './pda'
+import { parseTmRule } from './turing'
 import type { Grammar } from './cfg'
 
 /**
@@ -10,7 +11,7 @@ import type { Grammar } from './cfg'
 
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉'
 const MATH_SYMBOLS: Record<string, string> = {
-  'ε': '\\varepsilon ', '∅': '\\emptyset ', '→': '\\to ', '⊥': '\\bot ', '|': '\\mid ', ' ': '\\ ',
+  'ε': '\\varepsilon ', '⊔': '\\sqcup ', '∅': '\\emptyset ', '→': '\\to ', '⊥': '\\bot ', '|': '\\mid ', ' ': '\\ ',
   '$': '\\$', '{': '\\{', '}': '\\}', '#': '\\#', '%': '\\%', '&': '\\&', '_': '\\_',
   '\\': '\\backslash ', '^': '\\hat{}', '~': '\\sim ',
 }
@@ -36,9 +37,15 @@ export function texStateLabel(label: string): string {
 
 const nodeName = (index: number) => `s${index}`
 
-function edgeLabel(symbols: string[], pda: boolean): string {
+function edgeLabel(symbols: string[], kind: 'pda' | 'tm' | null): string {
   if (!symbols.length) return '$\\emptyset$'
-  if (!pda) return `$${symbols.map(symbol => texMath(symbol)).join(', ')}$`
+  if (kind === 'tm') return symbols.map(raw => {
+    const rule = parseTmRule(raw)
+    if (!rule) return `$${texMath(raw)}$`
+    // Sipser's shorthand: "a \to R" when the symbol is left as it was.
+    return `$${texMath(rule.read)} \\to ${rule.write === rule.read ? '' : `${texMath(rule.write)}, `}\\mathrm{${rule.move}}$`
+  }).join(' \\\\ ')
+  if (!kind) return `$${symbols.map(symbol => texMath(symbol)).join(', ')}$`
   // One rule per line: "a, X \to YZ".
   return symbols.map(rule => {
     const parsed = parsePdaRule(rule)
@@ -48,7 +55,7 @@ function edgeLabel(symbols: string[], pda: boolean): string {
   }).join(' \\\\ ')
 }
 
-export function graphToTikz(graph: AutomatonGraph, options: { pda?: boolean } = {}): string {
+export function graphToTikz(graph: AutomatonGraph, options: { pda?: boolean; tm?: boolean } = {}): string {
   const scale = 1 / 90 // canvas pixels per centimetre
   const index = new Map(graph.states.map((state, position) => [state.id, position]))
   const lines = [
@@ -64,7 +71,7 @@ export function graphToTikz(graph: AutomatonGraph, options: { pda?: boolean } = 
     lines.push('  \\path[->]')
     for (const transition of graph.transitions) {
       const from = nodeName(index.get(transition.source)!), to = nodeName(index.get(transition.target)!)
-      const label = edgeLabel(transition.symbols, !!options.pda)
+      const label = edgeLabel(transition.symbols, options.tm ? 'tm' : options.pda ? 'pda' : null)
       const multiline = label.includes('\\\\')
       const node = `node${multiline ? '[align=center]' : ''} {${label}}`
       if (transition.source === transition.target) lines.push(`    (${from}) edge[loop above] ${node} ()`)

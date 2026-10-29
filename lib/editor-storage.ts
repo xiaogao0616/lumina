@@ -7,6 +7,7 @@ import {
   type TabMode,
 } from './automaton-graph'
 import { parsePdaRule } from './pda'
+import { parseTmRule } from './turing'
 
 export const LEGACY_EDITOR_STORAGE_KEY = 'automata-lab.editor.v1'
 export const NFA_STORAGE_KEY = 'automata-lab.nfa.v1'
@@ -39,7 +40,7 @@ const kind = (value: unknown): value is StateKind => value === 'start' || value 
 const character = (value: unknown): value is string => text(value) && Array.from(value).length === 1 && !!value.trim()
 const unique = (values: unknown[]) => new Set(values).size === values.length
 const finiteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value)
-const mode = (value: unknown): value is AutomatonMode => value === 'dfa' || value === 'nfa' || value === 'pda'
+const mode = (value: unknown): value is AutomatonMode => value === 'dfa' || value === 'nfa' || value === 'pda' || value === 'tm'
 const tabMode = (value: unknown): value is TabMode => mode(value) || value === 'cfg'
 
 function fail(): never {
@@ -75,6 +76,7 @@ function readNodes(raw: unknown, allowAccepting: boolean) {
 }
 
 // A PDA edge holds rules (see lib/pda.ts) instead of characters; each rule may only read declared characters.
+// A TM edge holds rules too (lib/turing.ts), which may read and write any tape symbol, not just input characters.
 function pdaRuleAllowed(symbol: unknown, symbols: string[]) {
   const rule = text(symbol) ? parsePdaRule(symbol) : null
   return !!rule && (!rule.input || symbols.includes(rule.input))
@@ -83,6 +85,7 @@ function pdaRuleAllowed(symbol: unknown, symbols: string[]) {
 function readEdges(raw: unknown, nodeIds: Set<string>, symbols: string[], savedMode: AutomatonMode) {
   if (!Array.isArray(raw)) return fail()
   const allowed = (symbol: unknown) => savedMode === 'pda' ? pdaRuleAllowed(symbol, symbols)
+    : savedMode === 'tm' ? text(symbol) && !!parseTmRule(symbol)
     : (savedMode === 'nfa' && symbol === 'ε') || symbols.includes(symbol as string)
   const edges = raw.map(edge => {
     if (!record(edge) || !text(edge.id) || !edge.id || !text(edge.source) || !text(edge.target)

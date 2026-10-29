@@ -8,6 +8,7 @@ const labs = [
   { mode: 'nfa', title: 'Nondeterministic', body: 'ε-moves and branching are allowed. When you want the deterministic equivalent, convert with subset construction.' },
   { mode: 'pda', title: 'Pushdown', body: 'An NFA with a stack. Each rule reads a character, pops a symbol and pushes a string. Watch the stack change move by move.' },
   { mode: 'cfg', title: 'Context-free grammar', body: 'Write rules like S → aSb | ε. Test a string to see its parse tree and leftmost derivation, or convert the grammar to a PDA.' },
+  { mode: 'tm', title: 'Turing machine', body: 'A tape that is infinite to the right and a head that reads, writes and moves. Watch the tape change cell by cell, and see a run accept, reject or loop forever.' },
 ] as const
 
 export default function HomePage() {
@@ -22,10 +23,10 @@ export default function HomePage() {
           <div>
             <header className="lab-home-brand">
               <p className="eyebrow">Automata Lab</p>
-              <h1>One workspace, <em>four rulebooks</em></h1>
+              <h1>One workspace, <em>five rulebooks</em></h1>
             </header>
             <p className="lab-home-lead">
-              DFA, NFA and PDA look similar on the canvas but follow different transition rules, and a CFG is written as
+              DFA, NFA, PDA and Turing machines look similar on the canvas but follow different transition rules, and a CFG is written as
               rules instead of drawn. Each keeps its own rules and its own save, but they all live together as tabs in one
               workspace. Open as many of each as you like, and convert between them without losing anything: converting
               always opens the result as a new tab.

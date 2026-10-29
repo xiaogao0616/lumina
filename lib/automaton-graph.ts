@@ -1,4 +1,4 @@
-export type AutomatonMode = 'dfa' | 'nfa' | 'pda'
+export type AutomatonMode = 'dfa' | 'nfa' | 'pda' | 'tm'
 /** What a workspace tab can hold: an automaton on the canvas, or a grammar written as text. */
 export type TabMode = AutomatonMode | 'cfg'
 export type StateKind = 'start' | 'state' | 'accept'

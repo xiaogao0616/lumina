@@ -73,3 +73,33 @@ test('settings fall back to defaults and prompts mention the target', () => {
   assert.match(userPrompt('pda', 'aⁿbⁿ', false), /PDA/)
   assert.match(userPrompt('auto', '', true), /photo/)
 })
+
+test('a Turing machine reply: rules in several spellings, blank as _, input alphabet kept apart from markers', () => {
+  const result = specToResult({
+    type: 'tm', title: 'aⁿbⁿ',
+    alphabet: ['a', 'b'],
+    states: [{ name: 'q0', start: true }, { name: 'q1' }, { name: 'q2' }, { name: 'q3' }, { name: 'qa', accept: true }],
+    transitions: [
+      { from: 'q0', to: 'q1', symbols: ['a -> x, R'] }, { from: 'q0', to: 'q3', symbols: ['y→R'] }, { from: 'q0', to: 'qa', symbols: ['_→_,R'] },
+      { from: 'q1', to: 'q1', symbols: ['a→a,R', 'y/y,R'] }, { from: 'q1', to: 'q2', symbols: ['b,y,l'] },
+      { from: 'q2', to: 'q2', symbols: ['a→L', 'y→L'] }, { from: 'q2', to: 'q0', symbols: ['x→R'] },
+      { from: 'q3', to: 'q3', symbols: ['y→R'] }, { from: 'q3', to: 'qa', symbols: ['B→R'] },
+    ],
+  }, 'tm')
+  assert.equal(result.ok, true)
+  assert.equal(result.mode, 'tm')
+  assert.deepEqual(result.graph.symbols, ['a', 'b'])
+  assert.deepEqual(result.graph.transitions.find(edge => edge.source === 's1' && edge.target === 's2').symbols, ['b→y,L'])
+  assert.deepEqual(result.graph.transitions.find(edge => edge.target === 's4' && edge.source === 's0').symbols, ['⊔→⊔,R'])
+  const { runTmGraph } = loadTs('turing.ts')
+  for (const word of ['', 'ab', 'aabb']) assert.equal(runTmGraph(result.graph, word).status, 'accepted', word)
+  for (const word of ['a', 'abb', 'ba']) assert.equal(runTmGraph(result.graph, word).status, 'rejected', word)
+})
+
+test('a Turing machine reply with two rules for one read symbol is refused', () => {
+  const result = specToResult({ type: 'tm', alphabet: ['a'], states: [{ name: 'p', start: true }, { name: 'q', accept: true }],
+    transitions: [{ from: 'p', to: 'q', symbols: ['a→a,R'] }, { from: 'p', to: 'p', symbols: ['a→b,L'] }] }, 'auto')
+  assert.equal(result.ok, false)
+  assert.match(result.message, /two rules/)
+  assert.equal(specToResult({ type: 'tm', states: [{ name: 'p', start: true }], transitions: [{ from: 'p', to: 'p', symbols: ['a→b,S'] }] }, 'tm').ok, false)
+})
