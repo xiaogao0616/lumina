@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, GraduationCap, Swords, Zap } from 'lucide-react'
+import { ArrowRight, GraduationCap, Scale, Swords, Zap } from 'lucide-react'
 import { HeroAutomaton } from '../components/hero-automaton'
 import { ThemeToggle } from '../components/theme-toggle'
 
@@ -57,6 +57,12 @@ export default function HomePage() {
             <h2>Pumping lemma game</h2>
             <p>Show aⁿbⁿ isn’t regular by beating the computer: it picks p and the split, you pick the string and how far to pump.</p>
             <span>Play <ArrowRight size={14} aria-hidden="true" /></span>
+          </Link>
+          <Link className="lab-card is-decide" href="/deciders">
+            <span className="lab-card-icon"><Scale size={22} aria-hidden="true" /></span>
+            <h2>Deciders</h2>
+            <p>Sipser chapter 4, run step by step: A<sub>DFA</sub>, E<sub>DFA</sub>, EQ<sub>DFA</sub>, A<sub>CFG</sub>, E<sub>CFG</sub> and more, on the examples or your own tabs. Each shows why it always halts, and why A<sub>TM</sub> can’t.</p>
+            <span>Step through <ArrowRight size={14} aria-hidden="true" /></span>
           </Link>
         </div>
       </main>

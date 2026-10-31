@@ -556,6 +556,7 @@ button, input, textarea { font: inherit; }
 .lab-card.is-tm { grid-column: 1 / -1; }
 .lab-card.is-practice { --mode-fill: var(--success-fill); }
 .lab-card.is-pump { --mode-fill: var(--danger-fill); }
+.lab-card.is-decide { --mode-fill: var(--tm-fill); grid-column: 1 / -1; }
 .lab-section-title { margin: 56px 0 18px; color: var(--text); font: 800 28px var(--font-display), var(--font-sans), sans-serif; letter-spacing: -.03em; }
 .lab-card:active { transform: translate(2px, 2px); box-shadow: var(--hard-sm); }
 .lab-card:hover span svg { transform: translateX(3px); }
