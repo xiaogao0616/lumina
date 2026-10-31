@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, GraduationCap, Scale, Swords, Zap } from 'lucide-react'
+import { ArrowRight, GraduationCap, Lock, Scale, Swords, Zap } from 'lucide-react'
 import { HeroAutomaton } from '../components/hero-automaton'
 import { ThemeToggle } from '../components/theme-toggle'
 
@@ -34,6 +34,15 @@ export default function HomePage() {
           </div>
           <HeroAutomaton />
         </section>
+        <Link className="lab-start" href="/learn">
+          <span className="lab-start-icon"><Lock size={22} aria-hidden="true" /></span>
+          <span className="lab-start-copy">
+            <small>New to automata? Start here</small>
+            <b>What is a DFA? A five-minute interactive lesson</b>
+            <span>Open a two-button lock, look inside it, and finish your first machine. No background needed.</span>
+          </span>
+          <ArrowRight size={20} aria-hidden="true" />
+        </Link>
         <div className="lab-cards">
           {labs.map(lab => (
             <Link key={lab.mode} className={`lab-card is-${lab.mode}`} href={`/${lab.mode}`}>

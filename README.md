@@ -136,6 +136,7 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 
 ## 🎓 Practice and proofs
 
+- **Lesson 1: What is a DFA?** at `/learn`, linked at the top of the home page: seven short interactive steps for someone who has never seen an automaton. Open a two-button lock, look inside it, name the parts, predict accept or reject, spot a missing arrow, and finish your first machine. Each step unlocks once you've done its task.
 - **Practice mode** (the green **Practice** button in the toolbar): twelve languages to build a DFA or NFA for. *Check my answer* compares your machine with the reference exactly and names the shortest string it gets wrong.
 - **Compare or combine** two tabs: an equivalence check with shortest counterexamples, plus union, intersection and difference by product construction, and complement.
 - **DFA/NFA → regex** by state elimination, in the same syntax Regex → NFA reads.

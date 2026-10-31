@@ -104,7 +104,8 @@ export function graphToSvg(graph: AutomatonGraph, background = '#111116',
     const circle = circles.get(state.id)!
     const color = ink(state.color)
     const faded = options.highlight?.[state.id] === 'faded'
-    if (faded) parts.push('<g opacity="0.35">')
+    // Themed pictures tag each state so a page can tell which one was clicked.
+    parts.push(`<g${faded ? ' opacity="0.35"' : ''}${themed ? ` data-state="${escapeXml(state.id)}"` : ''}>`)
     if (state.kind === 'start') {
       const tipX = circle.x - circle.radius - 2
       parts.push(`<line x1="${tipX - 28}" y1="${circle.y}" x2="${tipX}" y2="${circle.y}" stroke="${color}" stroke-width="1.5"/>` +
@@ -115,7 +116,7 @@ export function graphToSvg(graph: AutomatonGraph, background = '#111116',
     if (isAcceptingState(state)) parts.push(`<circle cx="${circle.x}" cy="${circle.y}" r="${circle.radius - 6.5}" fill="none" stroke="${color}" stroke-width="1.5"/>`)
     const fontSize = Array.from(state.label).length > 7 ? 10 : 13
     parts.push(`<text x="${circle.x}" y="${circle.y}" fill="${textFill(state.id)}" font-family="monospace" font-size="${fontSize}" font-weight="600" text-anchor="middle" dominant-baseline="central">${escapeXml(state.label)}</text>`)
-    if (faded) parts.push('</g>')
+    parts.push('</g>')
   }
 
   // Edge captions (a self-loop's sits above its state) can stick out past the states, so they count toward the bounds too.
