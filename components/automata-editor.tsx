@@ -431,7 +431,7 @@ function TmRuleList({ edgeId, value }: { edgeId: string; value: string[] }) {
       </div>
       {error && <p role="alert">{error}</p>}
     </form>
-    <small>Leave Write empty to keep the symbol, shown as <code>a → R</code>. Any (state, symbol) with no rule rejects, so there is no reject state to draw.</small>
+    <small>Leave Write empty to keep the symbol: it becomes <code>a → a, R</code>. Any (state, symbol) with no rule rejects, so there is no reject state to draw.</small>
   </div>
 }
 

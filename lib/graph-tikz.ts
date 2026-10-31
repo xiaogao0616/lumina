@@ -42,8 +42,8 @@ function edgeLabel(symbols: string[], kind: 'pda' | 'tm' | null): string {
   if (kind === 'tm') return symbols.map(raw => {
     const rule = parseTmRule(raw)
     if (!rule) return `$${texMath(raw)}$`
-    // Sipser's shorthand: "a \to R" when the symbol is left as it was.
-    return `$${texMath(rule.read)} \\to ${rule.write === rule.read ? '' : `${texMath(rule.write)}, `}\\mathrm{${rule.move}}$`
+    // Always the full "a \to b, R", even when b = a.
+    return `$${texMath(rule.read)} \\to ${texMath(rule.write)}, \\mathrm{${rule.move}}$`
   }).join(' \\\\ ')
   if (!kind) return `$${symbols.map(symbol => texMath(symbol)).join(', ')}$`
   // One rule per line: "a, X \to YZ".

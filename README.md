@@ -116,7 +116,7 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 </table>
 
 ### 🖨️ Turing machines
-- Single-tape and deterministic, as in Sipser chapter 3. Each rule reads the symbol under the head, writes one and moves L or R (`0 → x, R`, or `0 → R` to leave it). `_` types the blank ⊔.
+- Single-tape and deterministic, as in Sipser chapter 3. Each rule reads the symbol under the head, writes one and moves L or R (`0 → x, R`; leave Write empty to keep the symbol, giving `0 → 0, R`). `_` types the blank ⊔.
 - The tape is infinite to the right and the head stays put if it moves left off the first cell. An accepting state halts and accepts; a missing rule rejects, so there's no reject state to draw.
 - A **tape panel** follows the run cell by cell. A run that repeats a configuration is reported as **looping forever**, and one that goes 20,000 moves without halting gets **no verdict**.
 - Examples: Sipser's `w#w` and `0^(2ⁿ)`, `aⁿbⁿcⁿ` (not context-free) and unary addition. The ✦ AI button builds a Turing machine from a description too.
