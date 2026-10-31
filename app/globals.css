@@ -132,6 +132,12 @@ button, input, textarea { font: inherit; }
   transition: background .1s, color .1s, border-color .1s, box-shadow .1s, transform .1s;
 }
 .tool-button { padding: 0 10px; background: transparent; color: var(--text); }
+/* AI and Practice sit in every tab's toolbar so they stay put however many tabs are open. */
+.tool-button.toolbar-ai, .tool-button.toolbar-practice { display: inline-flex; align-items: center; gap: 6px; border-color: var(--line); color: #121212; box-shadow: var(--hard-sm); }
+.tool-button.toolbar-ai { background: #ff9ed2; }
+.tool-button.toolbar-ai:hover { background: #ff85c6; transform: translate(-1px, -1px); box-shadow: var(--hard); }
+.tool-button.toolbar-practice { background: var(--success-fill); }
+.tool-button.toolbar-practice:hover { background: var(--success-fill); transform: translate(-1px, -1px); box-shadow: var(--hard); }
 .tool-button:hover, .tool-button[aria-expanded="true"] { border-color: var(--line); background: var(--raised); box-shadow: var(--hard-sm); }
 .icon-button { width: var(--control-h); padding: 0; background: transparent; color: var(--text-2); }
 .icon-button:hover, .icon-button[aria-expanded="true"] { border-color: var(--line); background: var(--raised); color: var(--text); box-shadow: var(--hard-sm); }

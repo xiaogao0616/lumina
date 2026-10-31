@@ -15,7 +15,7 @@ import { readSavedGrammar, type SavedGrammar } from '../lib/editor-storage'
 import { EXAMPLE_POOL_SIZE, randomTestString } from '../lib/accepted-strings'
 import { ThemeToggle } from './theme-toggle'
 import { WorkspaceCat } from './workspace-cat'
-import { Dropdown, MenuItem } from './menus'
+import { Dropdown, MenuItem, WorkspaceButtons, type WorkspaceActions } from './menus'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 import type { OpenTab } from './automata-editor'
 import { ShareDialog, ToolModal, downloadFile, shareUrl, showWord } from './lab-tools'
@@ -139,7 +139,7 @@ function AmbiguityDialog({ grammar, result, colorOf, onUse, onClose }: {
 }
 
 /** A grammar tab: rules typed as text, with membership tests that show a derivation and a parse tree. */
-export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; tabTitle: string; onConvert: OpenTab }) {
+export function GrammarLab({ saveKey, tabTitle, onConvert, actions }: { saveKey: string; tabTitle: string; onConvert: OpenTab; actions: WorkspaceActions }) {
   const [grammarText, setGrammarText] = useState(DEFAULT_GRAMMAR)
   const [testString, setTestString] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -298,6 +298,7 @@ export function GrammarLab({ saveKey, tabTitle, onConvert }: { saveKey: string; 
               onSelect={() => setGrammarText(example.grammar)} close={close} />)}
           </>}
         </Dropdown>
+        <WorkspaceButtons actions={actions} />
       </div>
       <div className="toolbar-spacer" />
       <ThemeToggle />

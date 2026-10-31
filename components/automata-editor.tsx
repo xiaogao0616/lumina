@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { createContext, useContext, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   ArrowRightLeft, Brackets, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CirclePlus, CircleQuestionMark, CircleX, Contrast, Copy, Dices, FileCode, FileDown,
-  FileUp, FolderOpen, GitCompareArrows, GraduationCap, GripVertical, ImageDown, Layers, Link2, ListChecks, Minimize2, Pencil, Play, Redo2, Regex, TextCursorInput,
+  FileUp, FolderOpen, GitCompareArrows, GripVertical, ImageDown, Layers, Link2, ListChecks, Minimize2, Pencil, Play, Redo2, Regex, TextCursorInput,
   TriangleAlert, Trash2, Undo2, Wrench, X, Zap,
 } from 'lucide-react'
 import {
@@ -82,7 +82,7 @@ import {
 import { GrammarLab } from './grammar-editor'
 import { ThemeToggle } from './theme-toggle'
 import { WorkspaceCat } from './workspace-cat'
-import { Dropdown, MenuItem } from './menus'
+import { Dropdown, MenuItem, WorkspaceButtons, type WorkspaceActions } from './menus'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 import { useAiBuilder, type OpenAiResult } from './ai-builder'
 import { CompareDialog, ExerciseBanner, PracticeDialog, RegexDialog, ShareDialog, downloadFile, shareUrl, type PeerTab } from './lab-tools'
@@ -612,8 +612,8 @@ function peerGraph(tab: SavedTab): AutomatonGraph | null {
   } catch { return null }
 }
 
-function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSolved }: {
-  mode: AutomatonMode; saveKey: string; tabTitle: string; onConvert: OpenTab
+function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exercise, onSolved }: {
+  mode: AutomatonMode; saveKey: string; tabTitle: string; onConvert: OpenTab; actions: WorkspaceActions
   /** The workspace's other DFA and NFA tabs, for Compare or combine. */
   peers: SavedTab[]
   exercise?: Exercise
@@ -1401,6 +1401,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, peers, exercise, onSo
             <button type="button" className="text-button" onClick={() => setRegexPopoverOpen(false)}>Cancel</button>
           </div>}
         </div>
+        <WorkspaceButtons actions={actions} />
       </div>
       <div className="toolbar-spacer" />
       <ThemeToggle />
@@ -1713,6 +1714,8 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
     setIndex(current => current && { ...current, tabs: [...current.tabs, { id, mode: tabMode, title }] })
   }, [])
   const ai = useAiBuilder(openAiResult)
+  const openAi = ai.open
+  const actions = useMemo<WorkspaceActions>(() => ({ openAi, openPractice: () => setPracticeOpen(true) }), [openAi])
   // State updaters must stay pure (React may invoke them more than once, e.g. under Strict Mode),
   // so side effects — localStorage, opening the rename dialog — run once here, outside setIndex.
   const closeTab = (id: string) => {
@@ -1751,15 +1754,11 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
       <button type="button" className="tab-add is-pda" aria-label="New PDA tab" title="New PDA tab" onClick={() => openTab('pda')}>+ PDA</button>
       <button type="button" className="tab-add is-tm" aria-label="New TM tab" title="New Turing machine tab" onClick={() => openTab('tm')}>+ TM</button>
       <button type="button" className="tab-add is-cfg" aria-label="New CFG tab" title="New grammar tab" onClick={() => openTab('cfg')}>+ CFG</button>
-      {ai.button}
-      <button type="button" className="tab-add is-practice" aria-label="Practice" title="Practice: build a machine for a language and check it" onClick={() => setPracticeOpen(true)}>
-        <GraduationCap size={12} aria-hidden="true" /> Practice
-      </button>
     </div>
     {linkError && <p className="convert-error" role="alert">{linkError} <button type="button" className="text-button" onClick={() => setLinkError('')}>Dismiss</button></p>}
     {activeTab.mode === 'cfg'
-      ? <GrammarLab key={activeTab.id} saveKey={tabStorageKey('cfg', activeTab.id)} tabTitle={activeTab.title} onConvert={openTab} />
-      : <ReactFlowProvider key={activeTab.id}><AutomataLab mode={activeTab.mode} saveKey={tabStorageKey(activeTab.mode, activeTab.id)} tabTitle={activeTab.title} onConvert={openTab}
+      ? <GrammarLab key={activeTab.id} saveKey={tabStorageKey('cfg', activeTab.id)} tabTitle={activeTab.title} onConvert={openTab} actions={actions} />
+      : <ReactFlowProvider key={activeTab.id}><AutomataLab mode={activeTab.mode} saveKey={tabStorageKey(activeTab.mode, activeTab.id)} tabTitle={activeTab.title} onConvert={openTab} actions={actions}
         peers={index.tabs.filter(tab => tab.id !== activeTab.id && (tab.mode === 'dfa' || tab.mode === 'nfa'))}
         exercise={exerciseById(activeTab.exercise)} onSolved={markSolved} /></ReactFlowProvider>}
     {dialog && <Dialog state={dialog} onClose={() => setDialog(null)} />}
