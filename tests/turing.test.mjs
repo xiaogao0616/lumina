@@ -7,12 +7,12 @@ const { parseTmRule, formatTmRule, displayTmRule, buildTmRule, runTmGraph, findT
 const example = name => tmExamples.find(item => item.name === name).graph
 const verdict = (graph, input) => runTmGraph(graph, input).status
 
-test('rules round-trip, with Sipser’s shorthand on the canvas', () => {
+test('rules round-trip, and the canvas always shows the full read → write, move', () => {
   assert.deepEqual(parseTmRule('a→b,R'), { read: 'a', write: 'b', move: 'R' })
   assert.deepEqual(parseTmRule('⊔→⊔,L'), { read: BLANK, write: BLANK, move: 'L' })
   assert.deepEqual(parseTmRule(',→→,R'), { read: ',', write: '→', move: 'R' })
   assert.equal(formatTmRule({ read: 'x', write: 'y', move: 'L' }), 'x→y,L')
-  assert.equal(displayTmRule('0→0,R'), '0 → R')
+  assert.equal(displayTmRule('0→0,R'), '0 → 0, R')
   assert.equal(displayTmRule('0→x,L'), '0 → x, L')
   for (const bad of ['', 'a→b', 'a→b,S', 'ab→c,R', 'a→ε,R', 'a-b,R']) assert.equal(parseTmRule(bad), null)
 })

@@ -116,7 +116,7 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 </table>
 
 ### 🖨️ Turing machines
-- Single-tape and deterministic, as in Sipser chapter 3. Each rule reads the symbol under the head, writes one and moves L or R (`0 → x, R`, or `0 → R` to leave it). `_` types the blank ⊔.
+- Single-tape and deterministic, as in Sipser chapter 3. Each rule reads the symbol under the head, writes one and moves L or R (`0 → x, R`; leave Write empty to keep the symbol, giving `0 → 0, R`). `_` types the blank ⊔.
 - The tape is infinite to the right and the head stays put if it moves left off the first cell. An accepting state halts and accepts; a missing rule rejects, so there's no reject state to draw.
 - A **tape panel** follows the run cell by cell. A run that repeats a configuration is reported as **looping forever**, and one that goes 20,000 moves without halting gets **no verdict**.
 - Examples: Sipser's `w#w` and `0^(2ⁿ)`, `aⁿbⁿcⁿ` (not context-free) and unary addition. The ✦ AI button builds a Turing machine from a description too.
@@ -136,7 +136,8 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 
 ## 🎓 Practice and proofs
 
-- **Practice mode**: twelve languages to build a DFA or NFA for. *Check my answer* compares your machine with the reference exactly and names the shortest string it gets wrong.
+- **Lesson 1: What is a DFA?** at `/learn`, linked at the top of the home page: seven short interactive steps for someone who has never seen an automaton. Open a two-button lock, look inside it, name the parts, predict accept or reject, spot a missing arrow, and finish your first machine. Each step unlocks once you've done its task.
+- **Practice mode** (the green **Practice** button in the toolbar): twelve languages to build a DFA or NFA for. *Check my answer* compares your machine with the reference exactly and names the shortest string it gets wrong.
 - **Compare or combine** two tabs: an equivalence check with shortest counterexamples, plus union, intersection and difference by product construction, and complement.
 - **DFA/NFA → regex** by state elimination, in the same syntax Regex → NFA reads.
 - **Pumping lemma game** at `/pumping`: the computer picks *p* and the split, you pick *s* and *i*, and a table shows whether your *s* wins against every split.
@@ -156,7 +157,7 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 
 ## ✦ Build with AI
 
-Click the pink **✦ AI** button at the end of the tab strip. You can **describe a language** ("strings over {a, b} that end in ab") or **take or choose a photo** of a hand-drawn diagram or grammar.
+Click the pink **✦ AI** button in the toolbar, next to the tools menu. You can **describe a language** ("strings over {a, b} that end in ab") or **take or choose a photo** of a hand-drawn diagram or grammar.
 
 - Pick DFA, NFA, PDA, Turing machine or CFG, or let the model choose. The run shows as a striped placeholder tab, so you can keep working while it thinks.
 - The result opens in a new tab after the same checks as an imported file: one start state, single-character symbols, a DFA that's really deterministic, grammar rules that parse.

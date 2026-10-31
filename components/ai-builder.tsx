@@ -172,7 +172,7 @@ function JobChip({ job, onOpen, onCancel }: { job: AiJob; onOpen: () => void; on
 }
 
 /**
- * The AI builder's pieces for the tab strip: the “✦ AI” button, a placeholder tab per run while
+ * The AI builder's pieces: `open` for the “✦ AI” button in each tab's toolbar, a placeholder tab per run while
  * the model works in the background (so the workspace stays usable), and the dialog. A finished
  * run becomes a real tab through onResult; a failed one stays as a red placeholder that reopens
  * the dialog with the same input and the error.
@@ -209,9 +209,7 @@ export function useAiBuilder(onResult: OpenAiResult) {
   return {
     chips: jobs.map(job => <JobChip key={job.id} job={job} onCancel={() => remove(job)}
       onOpen={() => setDialog({ request: job.request, error: job.error, jobId: job.id })} />),
-    button: <button type="button" className="tab-add is-ai" aria-label="Build with AI" title="Generate from a description, or recognize a photo" onClick={() => setDialog({})}>
-      <Sparkles size={12} aria-hidden="true" /> AI
-    </button>,
+    open: () => setDialog({}),
     dialog: dialog && <AiBuilderDialog initial={dialog} onClose={() => setDialog(null)} onStart={(request, settings) => {
       const retried = dialog.jobId && jobsRef.current.find(job => job.id === dialog.jobId)
       if (retried) remove(retried)

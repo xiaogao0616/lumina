@@ -30,11 +30,11 @@ export function formatTmRule(rule: TmRule): string {
   return `${rule.read}→${rule.write},${rule.move}`
 }
 
-/** Sipser's shorthand on the canvas: `a → R` when the symbol is left alone, `a → b, R` otherwise. */
+/** Always the full `a → b, R`, as the course writes it, even when the symbol is written back unchanged (`a → a, R`). */
 export function displayTmRule(raw: string): string {
   const rule = parseTmRule(raw)
   if (!rule) return raw
-  return rule.write === rule.read ? `${rule.read} → ${rule.move}` : `${rule.read} → ${rule.write}, ${rule.move}`
+  return `${rule.read} → ${rule.write}, ${rule.move}`
 }
 
 export function tmEdgeCaption(rules: string[]): string {

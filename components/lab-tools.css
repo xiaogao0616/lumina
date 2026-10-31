@@ -84,10 +84,6 @@
 .exercise-banner:is(.is-correct, .is-wrong, .is-error) .exercise-verdict :is(p, .word-row) { color: #121212; }
 .exercise-verdict .word-list { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
 
-/* The Practice button at the end of the tab strip. */
-.tab-add.is-practice { --mode-fill: var(--success-fill); display: inline-flex; align-items: center; gap: 5px; border-style: solid; background: var(--mode-fill); color: #121212; box-shadow: var(--hard-sm); }
-.tab-add.is-practice:hover { color: #121212; transform: translate(-1px, -1px) rotate(2deg); box-shadow: var(--hard); }
-
 /* Chomsky normal form steps and the ambiguity check (CFG tab) */
 .modal-box.tool-modal.is-wide { max-width: 860px; }
 .cnf-steps { display: grid; gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; counter-reset: cnf; }

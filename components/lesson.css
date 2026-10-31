@@ -1,0 +1,86 @@
+/* The interactive lessons (/learn). Same page frame as the pumping game and deciders pages. */
+.lesson-page { min-height: 100vh; background-color: var(--bg); background-image: linear-gradient(var(--canvas-grid) 1px, transparent 1px), linear-gradient(90deg, var(--canvas-grid) 1px, transparent 1px); background-size: 28px 28px; }
+.lesson-page .lab-home-nav .brand-home { color: var(--text); text-decoration: none; }
+.lesson-main { display: grid; gap: 18px; max-width: 760px; margin: 0 auto; padding: 28px 24px 80px; }
+.lesson-head { display: grid; justify-items: start; gap: 10px; }
+.lesson-back { display: inline-flex; align-items: center; gap: 4px; color: var(--link); font-size: var(--fs-small); font-weight: 700; }
+.lesson-progress { display: flex; gap: 6px; width: 100%; }
+.lesson-progress button { flex: 1; height: 10px; padding: 0; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); cursor: pointer; }
+.lesson-progress button:disabled { cursor: default; opacity: .5; }
+.lesson-progress button.is-solved { background: var(--success-fill); }
+.lesson-progress button.is-current { background: var(--accent); box-shadow: var(--hard-sm); }
+
+.lesson-card { display: grid; gap: 14px; min-width: 0; padding: 24px 26px; border: var(--bw) solid var(--line); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--hard-lg); animation: pop-in .16s ease-out; }
+.lesson-card h1 { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--text); font: 800 clamp(26px, 4vw, 34px)/1.1 var(--font-display), var(--font-sans), sans-serif; letter-spacing: -.03em; }
+.lesson-card h1 span { display: grid; place-items: center; flex-shrink: 0; width: 34px; height: 34px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: var(--dfa-fill); color: #121212; font: 800 16px var(--font-mono), monospace; box-shadow: var(--hard-sm); transform: rotate(-4deg); }
+.lesson-card > p { margin: 0; color: var(--text-2); font-size: 16px; line-height: 1.65; }
+.lesson-card > p b { color: var(--text); }
+.lesson-card code { padding: 0 4px; border-radius: var(--radius-xs); background: var(--hover); color: var(--text); font: 700 14px var(--font-mono), monospace; }
+.lesson-task { padding-left: 12px; border-left: 4px solid var(--accent); color: var(--text) !important; font-weight: 600; }
+.lesson-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.lesson-row .text-button { display: inline-flex; align-items: center; gap: 4px; }
+
+.lesson-lock { display: grid; justify-items: center; gap: 14px; padding: 20px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--bg); }
+.lesson-lock-icon { display: grid; justify-items: center; gap: 4px; width: 120px; padding: 14px 0 10px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--raised); color: var(--text); font: 800 14px var(--font-mono), monospace; text-transform: uppercase; box-shadow: var(--hard-sm); transition: background .2s, transform .2s; }
+.lesson-lock-icon.is-open { background: var(--success-fill); color: #121212; transform: rotate(-3deg) scale(1.05); box-shadow: var(--hard); }
+
+.lesson-keys { display: flex; gap: 10px; }
+.lesson-key { width: 56px; height: 56px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--raised); color: var(--text); font: 800 24px var(--font-mono), monospace; cursor: pointer; box-shadow: var(--hard); transition: transform .08s, box-shadow .08s; }
+.lesson-key:hover { background: var(--accent); color: #121212; }
+.lesson-key:active { transform: translate(3px, 3px); box-shadow: none; }
+.lesson-typed { display: flex; align-items: center; gap: 3px; min-height: 34px; }
+.lesson-typed span { display: grid; place-items: center; width: 26px; height: 32px; border: 1.5px solid var(--line); border-radius: var(--radius-xs); background: var(--raised); color: var(--text); font: 700 15px var(--font-mono), monospace; }
+.lesson-typed span:last-child { background: var(--accent); color: #121212; }
+.lesson-typed em { color: var(--muted); font: 500 13px var(--font-mono), monospace; }
+
+.lesson-diagram { display: grid; place-items: center; padding: 8px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--bg); overflow: auto; }
+.lesson-diagram svg { width: 100%; max-width: 620px; height: auto; max-height: 260px; }
+.lesson-diagram.is-pickable [data-state] { cursor: pointer; }
+.lesson-diagram.is-pickable [data-state]:hover circle:first-of-type { stroke-width: 3; }
+
+.lesson-choices { display: flex; flex-wrap: wrap; gap: 10px; }
+.lesson-choice, .lesson-chip, .lesson-predict-row button { height: 38px; padding: 0 14px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--raised); color: var(--text); font: 700 14px var(--font-mono), monospace; cursor: pointer; box-shadow: var(--hard-sm); transition: transform .1s, box-shadow .1s; }
+.lesson-choice:hover, .lesson-chip:hover, .lesson-predict-row button:hover { transform: translate(-1px, -1px); box-shadow: var(--hard); }
+.lesson-choice.is-right { background: var(--success-fill); color: #121212; }
+.lesson-choice.is-wrong { background: var(--danger-fill); color: #121212; }
+.lesson-chip.is-on, .lesson-predict-row button[aria-checked="true"] { background: var(--accent); color: #121212; }
+
+.lesson-card > .lesson-feedback { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 12px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); color: #121212; font-size: 15px; line-height: 1.5; box-shadow: var(--hard-sm); animation: pop-in .14s ease-out; }
+.lesson-card > .lesson-feedback svg { flex-shrink: 0; margin-top: 2px; }
+.lesson-card > .lesson-feedback.is-ok { background: var(--success-fill); }
+.lesson-card > .lesson-feedback.is-wrong { background: var(--warning-fill); }
+.lesson-card > .lesson-feedback code { background: #ffffffa0; color: #121212; }
+
+.lesson-learned { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lesson-learned li { display: flex; align-items: flex-start; gap: 8px; color: var(--text-2); font-size: 15px; line-height: 1.5; }
+.lesson-learned li svg { flex-shrink: 0; margin-top: 4px; color: var(--success); }
+.lesson-learned b { color: var(--text); }
+
+.lesson-predict { display: grid; gap: 8px; }
+.lesson-predict-row { display: grid; grid-template-columns: 80px auto 1fr; align-items: center; gap: 12px; padding: 6px 10px; border: 1.5px solid var(--border-soft); border-radius: var(--radius-md); }
+.lesson-predict-row > div { display: flex; gap: 6px; }
+.lesson-predict-row button { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 10px; font-size: 13px; }
+.lesson-predict-row small { color: var(--muted); font: 500 12px var(--font-mono), monospace; }
+.lesson-predict-row.is-right { border-color: var(--success); background: color-mix(in srgb, var(--success-fill) 35%, transparent); }
+.lesson-predict-row.is-wrong { border-color: var(--danger); background: color-mix(in srgb, var(--danger-fill) 35%, transparent); }
+.lesson-card > .primary-button { justify-self: start; }
+
+.lesson-arrows { display: grid; gap: 10px; }
+.lesson-arrows > div { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--text-2); }
+.lesson-arrows > div > div { display: flex; gap: 8px; }
+.lesson-tests { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.lesson-tests li { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); font-size: 13px; }
+.lesson-tests li span { flex: 1; color: var(--text-2); }
+.lesson-tests li.is-pass { background: color-mix(in srgb, var(--success-fill) 45%, transparent); }
+.lesson-tests li.is-fail { background: color-mix(in srgb, var(--danger-fill) 45%, transparent); }
+
+.lesson-next { display: flex; flex-wrap: wrap; gap: 10px; }
+.lesson-next a { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; text-decoration: none; }
+.lesson-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; padding-top: 14px; border-top: 1.5px dashed var(--border-soft); }
+.lesson-nav button { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; }
+
+@media (max-width: 600px) {
+  .lesson-main { padding: 20px 16px 64px; }
+  .lesson-card { padding: 18px 16px; }
+  .lesson-predict-row { grid-template-columns: 1fr; }
+}
