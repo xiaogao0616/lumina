@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { createContext, useContext, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
-  ArrowRightLeft, Brackets, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CirclePlus, CircleQuestionMark, CircleX, Contrast, Copy, Dices, FileCode, FileDown,
-  FileUp, FolderOpen, GitCompareArrows, GripVertical, ImageDown, Layers, Link2, ListChecks, Minimize2, Pencil, Play, Redo2, Regex, TextCursorInput,
+  ArrowRightLeft, Brackets, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CircleDot, CirclePlus, CircleQuestionMark, CircleX, Contrast, Copy, Dices, FileCode, FileDown,
+  FileUp, FolderOpen, GitCompareArrows, GripVertical, ImageDown, Layers, Link2, ListChecks, LogIn, Minimize2, Pencil, Play, Redo2, Regex, TextCursorInput,
   TriangleAlert, Trash2, Undo2, Wrench, X, Zap,
 } from 'lucide-react'
 import {
@@ -91,7 +91,7 @@ import { SOLVED_KEY, checkExercise, exerciseById, readSolved, type Exercise, typ
 import { decodeShare, shareCodeFromHash } from '../lib/share-link'
 import { graphToTikz } from '../lib/graph-tikz'
 
-type AutomataNodeData = { label: string; kind: StateKind; color?: string; related?: boolean; accepting?: boolean; onRename?: () => void; onDelete?: () => void; animating?: 'active' | 'accept' | 'reject'; animatingTick?: number }
+type AutomataNodeData = { label: string; kind: StateKind; color?: string; related?: boolean; accepting?: boolean; onRename?: () => void; onDelete?: () => void; onToggleAccept?: () => void; onMakeStart?: () => void; animating?: 'active' | 'accept' | 'reject'; animatingTick?: number }
 type AutomataNode = Node<AutomataNodeData>
 
 function withTransitionSymbols(edge: Edge, symbols: string[]): Edge {
@@ -256,6 +256,10 @@ function StateNode({ id, data, selected }: NodeProps<AutomataNode>) {
     {(data.animating === 'accept' || data.animating === 'reject') && <span className={`node-result-glow is-${data.animating}`} aria-hidden="true" />}
     {(data.onRename || data.onDelete) && <div className="node-actions nodrag nopan" onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()}>
       <button type="button" aria-label={`Rename ${data.label}`} title="Rename" onClick={event => { event.stopPropagation(); data.onRename?.() }}><Pencil size={13} /></button>
+      {data.onToggleAccept && <button type="button" className={accepting ? 'is-on' : ''} aria-pressed={accepting} aria-label={accepting ? `Make ${data.label} non-accepting` : `Make ${data.label} accepting`}
+        title={accepting ? 'Make non-accepting (keeps its transitions)' : 'Make accepting (keeps its transitions)'} onClick={event => { event.stopPropagation(); data.onToggleAccept?.() }}><CircleDot size={13} /></button>}
+      {data.onMakeStart && data.kind !== 'start' && <button type="button" aria-label={`Make ${data.label} the start state`} title="Make this the start state (keeps its transitions)"
+        onClick={event => { event.stopPropagation(); data.onMakeStart?.() }}><LogIn size={13} /></button>}
       <button type="button" aria-label={`Delete ${data.label}`} title="Delete" onClick={event => { event.stopPropagation(); data.onDelete?.() }}><Trash2 size={13} /></button>
     </div>}
   </div>
@@ -1040,6 +1044,25 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
       onConfirm: label => setNodes(current => current.map(item => item.id === nodeId ? { ...item, data: { ...item.data, label } } : item)),
     })
   }, [nodes, setNodes])
+  // Change what a state is without touching its transitions, so a wrong kind doesn't mean redrawing every arrow.
+  const toggleAccepting = useCallback((nodeId: string) => {
+    setNodes(current => current.map(node => {
+      if (node.id !== nodeId) return node
+      if (node.data.kind === 'start') return { ...node, data: { ...node.data, accepting: !node.data.accepting } }
+      const kind: StateKind = node.data.kind === 'accept' ? 'state' : 'accept'
+      return { ...node, type: kind, data: { ...node.data, kind } }
+    }))
+  }, [setNodes])
+  const makeStart = useCallback((nodeId: string) => {
+    setNodes(current => current.map(node => {
+      const accepting = isAcceptingNode(node.data)
+      if (node.id === nodeId) return { ...node, type: 'start', data: { ...node.data, kind: 'start' as const, accepting: accepting || undefined } }
+      if (node.data.kind !== 'start') return node
+      // The old start keeps whether it accepted.
+      const kind: StateKind = accepting ? 'accept' : 'state'
+      return { ...node, type: kind, data: { ...node.data, kind, accepting: undefined } }
+    }))
+  }, [setNodes])
   const toggleStartAccepting = useCallback(() => {
     if (!selectedId) return
     setNodes(current => current.map(node => {
@@ -1521,7 +1544,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
           {isDfa && <span className={`stat-pill ${testPassed ? 'is-good' : ''}`} title="Whether Validate DFA has confirmed this is a standard DFA since it last changed — not whether a particular test string was accepted">Validated <b>{testPassed ? 'Yes' : 'No'}</b></span>}
         </div>
         <div className="toolbar-actions">{selectedStart && <button className="tool-button" type="button" onClick={toggleStartAccepting} aria-pressed={!!selectedStart.data.accepting}>◎ <span>{selectedStart.data.accepting ? 'Start accepts' : 'Start rejects ε'}</span></button>}</div>
-      </div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }} onMouseMove={onPaneMouseMove}>{reshapeTick > 0 && <div key={reshapeTick} className="reshape-flash" aria-hidden="true" />}{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} color={sourceColor(connectingNode)} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, data: { ...node.data, related: node.id === focusedEdge?.source || node.id === focusedEdge?.target, onRename: () => renameNode(node.id), onDelete: () => deleteNode(node.id), animating: activeFrame && node.id === activeFrame.stateId ? activeKind ?? undefined : undefined, animatingTick: animation?.tick }, selected: node.id === selectedId || node.id === connectingId, draggable: true }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeClick={onEdgeClick} onEdgeMouseEnter={onEdgeMouseEnter} onEdgeMouseLeave={onEdgeMouseLeave} onNodeClick={onNodeClick} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop} autoPanOnNodeDrag={false} nodeDragThreshold={5} nodeClickDistance={5} onNodesDelete={onNodesDelete} deleteKeyCode={['Backspace', 'Delete']} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={fitViewOptions} minZoom={0.35} maxZoom={2}><Background variant={BackgroundVariant.Lines} gap={28} lineWidth={1} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => inkColor(sourceColor(node as AutomataNode))} maskColor="var(--minimap-mask)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target (or source for a loop) · Drag to move · Esc to cancel</div> : nodes.length === 0 ? <div className="canvas-empty-hint">Drag a state in from the sidebar to get started</div> : <div className="canvas-hint">Click a state to connect · Drag a state to move</div>}<WorkspaceCat result={testResult} watching={!!animation} />
+      </div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }} onMouseMove={onPaneMouseMove}>{reshapeTick > 0 && <div key={reshapeTick} className="reshape-flash" aria-hidden="true" />}{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} color={sourceColor(connectingNode)} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, data: { ...node.data, related: node.id === focusedEdge?.source || node.id === focusedEdge?.target, onRename: () => renameNode(node.id), onDelete: () => deleteNode(node.id), onToggleAccept: () => toggleAccepting(node.id), onMakeStart: () => makeStart(node.id), animating: activeFrame && node.id === activeFrame.stateId ? activeKind ?? undefined : undefined, animatingTick: animation?.tick }, selected: node.id === selectedId || node.id === connectingId, draggable: true }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeClick={onEdgeClick} onEdgeMouseEnter={onEdgeMouseEnter} onEdgeMouseLeave={onEdgeMouseLeave} onNodeClick={onNodeClick} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop} autoPanOnNodeDrag={false} nodeDragThreshold={5} nodeClickDistance={5} onNodesDelete={onNodesDelete} deleteKeyCode={['Backspace', 'Delete']} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={fitViewOptions} minZoom={0.35} maxZoom={2}><Background variant={BackgroundVariant.Lines} gap={28} lineWidth={1} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => inkColor(sourceColor(node as AutomataNode))} maskColor="var(--minimap-mask)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target (or source for a loop) · Drag to move · Esc to cancel</div> : nodes.length === 0 ? <div className="canvas-empty-hint">Drag a state in from the sidebar to get started</div> : <div className="canvas-hint">Click a state to connect · Drag a state to move</div>}<WorkspaceCat result={testResult} watching={!!animation} />
         {isPda && <StackPanel step={stackStep} index={stackIndex} total={stackSteps?.length ?? 0} inputLength={Array.from(testString).length} />}
         {isTm && <TapePanel step={tapeStep} index={tapeIndex} total={tapeSteps?.length ?? 0} moves={tapeMoves}
           stateLabel={nodes.find(node => node.id === tapeStep?.stateId)?.data.label ?? ''} />}
