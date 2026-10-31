@@ -12,7 +12,7 @@ A loud, hands-on DFA / NFA / PDA / CFG workbench that runs entirely in your brow
 ![React](https://img.shields.io/badge/React_19-20232a?logo=react&logoColor=61dafb)
 ![React Flow](https://img.shields.io/badge/React_Flow-ff0072?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-144_passing-34d399)
+![Tests](https://img.shields.io/badge/tests-150_passing-34d399)
 ![No backend](https://img.shields.io/badge/backend-none-67e8f9)
 
 <img src="docs/screenshot-home.jpg" alt="The Automata Lab home page: a bold headline, an animated automaton reading aab and accepting it, and one card per workspace" width="100%">
@@ -140,6 +140,7 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 - **Compare or combine** two tabs: an equivalence check with shortest counterexamples, plus union, intersection and difference by product construction, and complement.
 - **DFA/NFA → regex** by state elimination, in the same syntax Regex → NFA reads.
 - **Pumping lemma game** at `/pumping`: the computer picks *p* and the split, you pick *s* and *i*, and a table shows whether your *s* wins against every split.
+- **Deciders** at `/deciders` (Sipser chapter 4): A<sub>DFA</sub>, A<sub>NFA</sub>, A<sub>REX</sub>, E<sub>DFA</sub>, EQ<sub>DFA</sub>, A<sub>CFG</sub> and E<sub>CFG</sub>, each run the way the book's proof does it and replayed step by step on an example or one of your own tabs, with the reason it always halts. A last panel shows why A<sub>TM</sub> has no decider.
 - **Share link** packs a tab into the URL, and **Export LaTeX** writes a TikZ picture of an automaton or an `align*` block of a grammar for homework.
 
 <div align="center">
@@ -148,6 +149,9 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 <br><br>
 <img src="docs/screenshot-pumping.jpg" alt="The pumping lemma game: the opponent splits aaaabbbb, and pumping y twice leaves aⁿbⁿ" width="100%">
 <br><sub>The pumping lemma game: the opponent picks the split, you pick <i>i</i>.</sub>
+<br><br>
+<img src="docs/screenshot-deciders.jpg" alt="The EQ_DFA decider comparing two DFAs for strings ending in ab: the product machine C mid-way through marking reachable states" width="100%">
+<br><sub>The EQ<sub>DFA</sub> decider: build C for the symmetric difference, then mark what's reachable.</sub>
 </div>
 
 ## ✦ Build with AI
@@ -276,12 +280,13 @@ All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate 
 | `edge-geometry.ts` / `graph-svg.ts` | Edge routing on the canvas, and standalone SVG export with the same routing |
 | `regular-ops.ts` | Equivalence with shortest counterexamples, product constructions, complement, state elimination to regex |
 | `cfg-transform.ts` | Chomsky normal form with every step, and a bounded ambiguity search |
+| `deciders.ts` / `decider-examples.ts` | The chapter 4 deciders with a trace of every stage, and their example inputs |
 | `exercises.ts` / `pumping.ts` | Practice exercises and their checker; languages and splits for the pumping lemma game |
 | `share-link.ts` / `graph-tikz.ts` | Compressed share links; TikZ and LaTeX export |
 | `editor-storage.ts` | Versioned, validated local saves and tab index |
 
 ```bash
-npm test           # 144 tests, node --test
+npm test           # 150 tests, node --test
 npm run typecheck  # route types + tsc --noEmit
 npm run build      # static export into out/
 ```
