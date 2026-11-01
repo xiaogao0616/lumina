@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import { DfaLesson } from '../../components/lesson-dfa'
+import { LessonIndex } from '../../components/lesson-index'
 
-export const metadata: Metadata = { title: 'What is a DFA? — Automata Lab' }
+export const metadata: Metadata = { title: 'Lessons — Automata Lab' }
 
 export default function LearnPage() {
-  return <DfaLesson />
+  return <LessonIndex />
 }

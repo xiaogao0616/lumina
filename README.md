@@ -137,7 +137,12 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 
 ## 🎓 Practice and proofs
 
-- **Lesson 1: What is a DFA?** at `/learn`, linked at the top of the home page: seven short interactive steps for someone who has never seen an automaton. Open a two-button lock, look inside it, name the parts, predict accept or reject, spot a missing arrow, and finish your first machine. Each step unlocks once you've done its task.
+- **Interactive lessons** at `/learn`, linked at the top of the home page: five short lessons for someone who has never seen an automaton, following Sipser chapters 1 and 2. Each step unlocks once you've done its task, and the index marks the lessons you've finished.
+  1. **What is a DFA?** Open a two-button lock, look inside it, name the parts, predict accept or reject, spot a missing arrow, and finish your first machine.
+  2. **Machines that can guess.** Watch an NFA split into copies, find which copies survive, follow ε-arrows, and tap the matching state of its subset-construction DFA.
+  3. **Regular expressions.** Predict what union, concatenation and star match, read regexes aloud, write one that is checked on every string up to length 7, and see each regex's smallest DFA.
+  4. **What finite memory can't do.** Break a DFA that tries to count aⁿbⁿ, find the state that must repeat, and pump the loop: the pumping lemma, discovered step by step.
+  5. **Grammars that grow strings.** Derive strings by tapping rules, see a grammar generate aⁿbⁿ and balanced parentheses, and write a grammar for even palindromes.
 - **Practice mode** (the green **Practice** button in the toolbar): twelve languages to build a DFA or NFA for. *Check my answer* compares your machine with the reference exactly and names the shortest string it gets wrong.
 - **Compare or combine** two tabs: an equivalence check with shortest counterexamples, plus union, intersection and difference by product construction, and complement.
 - **DFA/NFA → regex** by state elimination, in the same syntax Regex → NFA reads.
