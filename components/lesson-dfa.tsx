@@ -1,29 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, Check, CircleCheck, CircleX, Lock, LockOpen, RotateCcw, X, Zap } from 'lucide-react'
-import { ThemeToggle } from './theme-toggle'
-import { graphToSvg, type StateHighlight } from '../lib/graph-svg'
-import { SOURCE_COLORS, isAcceptingState, type AutomatonGraph, type StateKind } from '../lib/automaton-graph'
-import './lesson.css'
+import { useMemo, useState } from 'react'
+import { ArrowRight, Lock, LockOpen, RotateCcw } from 'lucide-react'
+import { Choices, Diagram, Feedback, Keys, LessonShell, Learned, PredictList, TestList, Typed, accepts, labelOf, machine, run, useSolvedWhen, type LessonStep, type StepProps } from './lesson-kit'
 
 /**
  * Lesson 1: what a DFA is, for someone who has never seen one. One idea per step, and each step
  * asks the learner to do something before Continue unlocks, so it is learned by trying, not reading.
  */
-
-// ---------- Machines used in the lesson ----------
-
-type Spec = [id: string, label: string, kind: StateKind, x: number, y: number, accepting?: boolean]
-
-function machine(specs: Spec[], edges: [string, string, string][]): AutomatonGraph {
-  return {
-    symbols: ['a', 'b'],
-    states: specs.map(([id, label, kind, x, y, accepting], index) => ({ id, label, kind, accepting, position: { x, y }, color: SOURCE_COLORS[index % SOURCE_COLORS.length] })),
-    transitions: edges.map(([source, target, symbols]) => ({ id: `${source}-${target}`, source, target, symbols: symbols.split('') })),
-  }
-}
 
 // A lock that opens when the last two buttons pressed were a then b.
 const LOCK = machine(
@@ -33,71 +18,7 @@ const LOCK = machine(
 // The same lock with one arrow missing: "open" has nowhere to go on a.
 const BROKEN = { ...LOCK, transitions: LOCK.transitions.filter(edge => edge.id !== 'o-a') }
 
-/** Runs a DFA; returns every state visited, or stops early (null next) on a missing arrow. */
-function run(graph: AutomatonGraph, input: string): { path: string[]; stuck: boolean } {
-  let current = graph.states.find(state => state.kind === 'start')!.id
-  const path = [current]
-  for (const char of input) {
-    const edge = graph.transitions.find(item => item.source === current && item.symbols.includes(char))
-    if (!edge) return { path, stuck: true }
-    current = edge.target
-    path.push(current)
-  }
-  return { path, stuck: false }
-}
-const accepts = (graph: AutomatonGraph, input: string) => {
-  const result = run(graph, input)
-  if (result.stuck) return false
-  const last = graph.states.find(state => state.id === result.path[result.path.length - 1])!
-  return isAcceptingState(last)
-}
-const labelOf = (graph: AutomatonGraph, id: string) => graph.states.find(state => state.id === id)?.label ?? id
-
-// ---------- Small building blocks ----------
-
-function Diagram({ graph, current, highlight, activeEdge, onPick, label }: {
-  graph: AutomatonGraph; current?: string; highlight?: Record<string, StateHighlight>; activeEdge?: string | null
-  onPick?: (stateId: string) => void; label: string
-}) {
-  const marks = useMemo(() => ({ ...highlight, ...(current ? { [current]: 'current' as const } : {}) }), [highlight, current])
-  const svg = useMemo(() => graphToSvg(graph, '', undefined, { themed: true, highlight: marks, activeEdges: activeEdge ? [activeEdge] : [] }), [graph, marks, activeEdge])
-  return <div className={`lesson-diagram ${onPick ? 'is-pickable' : ''}`} role="img" aria-label={label}
-    onClick={event => {
-      const target = (event.target as Element).closest('[data-state]')
-      if (target && onPick) onPick(target.getAttribute('data-state')!)
-    }} dangerouslySetInnerHTML={{ __html: svg }} />
-}
-
-function Keys({ onPress, disabled }: { onPress: (char: string) => void; disabled?: boolean }) {
-  return <div className="lesson-keys" role="group" aria-label="Buttons">
-    {['a', 'b'].map(char => <button key={char} type="button" className="lesson-key" disabled={disabled} onClick={() => onPress(char)}>{char}</button>)}
-  </div>
-}
-
-function Typed({ input }: { input: string }) {
-  const chars = Array.from(input)
-  return <div className="lesson-typed" aria-label={input ? `Pressed ${chars.join(' ')}` : 'Nothing pressed yet'}>
-    {chars.length ? chars.slice(-12).map((char, index) => <span key={index}>{char}</span>) : <em>press a button</em>}
-  </div>
-}
-
-function Feedback({ ok, children }: { ok: boolean; children: ReactNode }) {
-  return <p className={`lesson-feedback ${ok ? 'is-ok' : 'is-wrong'}`} role="status">
-    {ok ? <CircleCheck size={18} aria-hidden="true" /> : <CircleX size={18} aria-hidden="true" />}<span>{children}</span>
-  </p>
-}
-
-function Choices<T extends string>({ options, picked, answer, onPick }: { options: { value: T; label: ReactNode }[]; picked: T | null; answer: T; onPick: (value: T) => void }) {
-  return <div className="lesson-choices" role="radiogroup">
-    {options.map(option => <button key={option.value} type="button" role="radio" aria-checked={picked === option.value}
-      className={`lesson-choice ${picked === option.value ? (option.value === answer ? 'is-right' : 'is-wrong') : ''}`}
-      onClick={() => onPick(option.value)}>{option.label}</button>)}
-  </div>
-}
-
 // ---------- The steps ----------
-
-type StepProps = { onSolved: () => void; solved: boolean }
 
 /** 1. Just play with the lock. */
 function StepLock({ onSolved, solved }: StepProps) {
@@ -125,7 +46,7 @@ function StepInside({ onSolved, solved }: StepProps) {
   const edge = previous ? LOCK.transitions.find(item => item.source === previous && item.target === current && item.symbols.includes(input.slice(-1))) : null
   return <>
     <p>The lock doesn’t remember everything you typed. It only needs to know <b>one</b> of three things, so that’s all it keeps: you’ve made no progress, you’ve just pressed <b>a</b>, or it’s open. Each circle is one of those situations, and each arrow says where a button press takes you.</p>
-    <Diagram graph={LOCK} current={current} activeEdge={edge?.id} label={`The lock, now in ${labelOf(LOCK, current)}`} />
+    <Diagram graph={LOCK} current={current} activeEdges={edge ? [edge.id] : []} label={`The lock, now in ${labelOf(LOCK, current)}`} />
     <div className="lesson-row"><Typed input={input} /><Keys onPress={char => setInput(value => value + char)} /><button type="button" className="text-button" onClick={() => setInput('')}><RotateCcw size={13} aria-hidden="true" /> Reset</button></div>
     <p className="lesson-task">Press some buttons and follow the yellow circle. Then: if you press <code>b a a</code> from the start, where do you end up?</p>
     <Choices options={LOCK.states.map(state => ({ value: state.id, label: state.label }))} picked={picked} answer="a"
@@ -156,37 +77,19 @@ function StepParts({ onSolved }: StepProps) {
     <Diagram graph={LOCK} highlight={highlight} onPick={pick} label="The lock as a DFA. Tap a state." />
     {done < tasks.length && <p className="lesson-task">{tasks[done].ask}</p>}
     {miss && <Feedback ok={false}>That’s “{labelOf(LOCK, miss)}”. {done === 0 ? 'Look for the double circle.' : 'Look for the arrow that comes from nowhere.'}</Feedback>}
-    <ul className="lesson-learned">{tasks.slice(0, done).map(task => <li key={task.id}><Check size={14} aria-hidden="true" /><span><b>{task.name}</b>: {task.why}</span></li>)}</ul>
+    <Learned items={tasks.slice(0, done).map(task => <><b>{task.name}</b>: {task.why}</>)} />
   </>
 }
 
 /** 4. Predict before you run: accept or reject? */
 function StepPredict({ onSolved }: StepProps) {
-  const words = ['ab', 'ba', 'aab', 'abb', 'bbab']
-  const [guesses, setGuesses] = useState<Record<string, boolean>>({})
-  const [checked, setChecked] = useState(false)
-  const allRight = words.every(word => guesses[word] === accepts(LOCK, word))
   return <>
     <p>A DFA reads a string one letter at a time, following one arrow per letter. When the letters run out, it <b>accepts</b> if it’s in an accept state and <b>rejects</b> otherwise. The set of strings it accepts is called its <b>language</b>.</p>
     <Diagram graph={LOCK} label="The lock DFA" />
     <p className="lesson-task">Will the lock accept each of these? Decide, then check.</p>
-    <div className="lesson-predict">
-      {words.map(word => {
-        const truth = accepts(LOCK, word)
-        return <div key={word} className={`lesson-predict-row ${checked ? (guesses[word] === truth ? 'is-right' : 'is-wrong') : ''}`}>
-          <code>{word}</code>
-          <div role="radiogroup" aria-label={`Does it accept ${word}?`}>
-            <button type="button" role="radio" aria-checked={guesses[word] === true} onClick={() => { setGuesses(value => ({ ...value, [word]: true })); setChecked(false) }}><Check size={14} aria-hidden="true" /> accept</button>
-            <button type="button" role="radio" aria-checked={guesses[word] === false} onClick={() => { setGuesses(value => ({ ...value, [word]: false })); setChecked(false) }}><X size={14} aria-hidden="true" /> reject</button>
-          </div>
-          {checked && <small>{run(LOCK, word).path.map(id => labelOf(LOCK, id)).join(' → ')}</small>}
-        </div>
-      })}
-    </div>
-    <button type="button" className="primary-button" disabled={words.some(word => guesses[word] === undefined)} onClick={() => { setChecked(true); if (allRight) onSolved() }}>Check</button>
-    {checked && (allRight
-      ? <Feedback ok>All correct. The lock’s language is “every string that ends in ab”.</Feedback>
-      : <Feedback ok={false}>Some are off. Each row now shows the path the machine takes. Change your answers and check again.</Feedback>)}
+    <PredictList words={['ab', 'ba', 'aab', 'abb', 'bbab']} truth={word => accepts(LOCK, word)} onSolved={onSolved}
+      explain={word => run(LOCK, word).path.map(id => labelOf(LOCK, id)).join(' → ')}
+      success={<>All correct. The lock’s language is “every string that ends in ab”.</>} />
   </>
 }
 
@@ -220,7 +123,7 @@ function StepFix({ onSolved, solved }: StepProps) {
   ), [aTarget, bTarget])
   const results = EVEN_TESTS.map(word => ({ word, want: Array.from(word).filter(char => char === 'a').length % 2 === 0, got: accepts(graph, word) }))
   const passing = results.every(item => item.want === item.got)
-  useEffect(() => { if (passing && !solved) onSolved() }, [passing, solved, onSolved])
+  useSolvedWhen(passing, solved, onSolved)
   const option = (value: 'e' | 'o', current: 'e' | 'o', set: (next: 'e' | 'o') => void) =>
     <button type="button" role="radio" aria-checked={current === value} className={`lesson-chip ${current === value ? 'is-on' : ''}`} onClick={() => set(value)}>{value === 'e' ? 'even' : 'odd'}</button>
   return <>
@@ -230,11 +133,7 @@ function StepFix({ onSolved, solved }: StepProps) {
       <div><span>From <b>odd</b>, reading <code>a</code>, go to</span><div role="radiogroup" aria-label="odd on a">{option('e', aTarget, setATarget)}{option('o', aTarget, setATarget)}</div></div>
       <div><span>From <b>odd</b>, reading <code>b</code>, go to</span><div role="radiogroup" aria-label="odd on b">{option('e', bTarget, setBTarget)}{option('o', bTarget, setBTarget)}</div></div>
     </div>
-    <ul className="lesson-tests" aria-label="Test strings">
-      {results.map(item => <li key={item.word} className={item.want === item.got ? 'is-pass' : 'is-fail'}>
-        <code>{item.word || 'ε'}</code><span>{item.want ? 'should accept' : 'should reject'}</span>{item.want === item.got ? <Check size={14} aria-label="passes" /> : <X size={14} aria-label="fails" />}
-      </li>)}
-    </ul>
+    <TestList rows={results} />
     {passing
       ? <Feedback ok>Every test passes. An <code>a</code> flips even ↔ odd, and a <code>b</code> changes nothing. (ε is the empty string: zero letters, zero a’s, so it’s accepted.)</Feedback>
       : <p className="lesson-task">Make every row pass.</p>}
@@ -245,12 +144,12 @@ function StepFix({ onSolved, solved }: StepProps) {
 function StepDone() {
   return <>
     <p>That’s a DFA. Everything else in automata theory builds on these few ideas:</p>
-    <ul className="lesson-learned">
-      <li><Check size={14} aria-hidden="true" /><span>A <b>state</b> is the one thing the machine remembers about what it has read so far.</span></li>
-      <li><Check size={14} aria-hidden="true" /><span>A <b>transition</b> says where each letter takes you. A DFA has exactly one for every state and letter.</span></li>
-      <li><Check size={14} aria-hidden="true" /><span>It starts at the <b>start state</b> and <b>accepts</b> if the input ends in an <b>accept state</b>.</span></li>
-      <li><Check size={14} aria-hidden="true" /><span>The strings it accepts are its <b>language</b>. Designing a DFA means deciding what to remember.</span></li>
-    </ul>
+    <Learned items={[
+      <>A <b>state</b> is the one thing the machine remembers about what it has read so far.</>,
+      <>A <b>transition</b> says where each letter takes you. A DFA has exactly one for every state and letter.</>,
+      <>It starts at the <b>start state</b> and <b>accepts</b> if the input ends in an <b>accept state</b>.</>,
+      <>The strings it accepts are its <b>language</b>. Designing a DFA means deciding what to remember.</>,
+    ]} />
     <div className="lesson-next">
       <Link className="primary-button" href="/dfa?practice=1">Build your own in Practice <ArrowRight size={14} aria-hidden="true" /></Link>
       <Link className="secondary-button" href="/dfa">Open the DFA workspace</Link>
@@ -258,7 +157,7 @@ function StepDone() {
   </>
 }
 
-const steps: { title: string; Body: (props: StepProps) => ReactNode; free?: boolean }[] = [
+const steps: LessonStep[] = [
   { title: 'A lock with two buttons', Body: StepLock },
   { title: 'Look inside the lock', Body: StepInside },
   { title: 'Name the parts', Body: StepParts },
@@ -269,35 +168,5 @@ const steps: { title: string; Body: (props: StepProps) => ReactNode; free?: bool
 ]
 
 export function DfaLesson() {
-  const [index, setIndex] = useState(0)
-  const [solved, setSolved] = useState<boolean[]>(() => steps.map(step => !!step.free))
-  const step = steps[index]
-  const markSolved = useCallback((at: number) => setSolved(current => current[at] ? current : current.map((value, i) => i === at ? true : value)), [])
-  const solveCurrent = useCallback(() => markSolved(index), [markSolved, index])
-  const Body = step.Body
-  return <div className="lesson-page">
-    <nav className="lab-home-nav" aria-label="Site">
-      <Link className="brand-home" href="/"><span className="brand-mark" aria-hidden="true"><Zap size={14} /></span>Automata Lab</Link>
-      <ThemeToggle />
-    </nav>
-    <main className="lesson-main">
-      <header className="lesson-head">
-        <Link className="lesson-back" href="/"><ArrowLeft size={14} aria-hidden="true" /> Home</Link>
-        <p className="eyebrow">Lesson 1 · No background needed</p>
-        <div className="lesson-progress" aria-label={`Step ${index + 1} of ${steps.length}`}>
-          {steps.map((item, at) => <button key={at} type="button" className={`${at === index ? 'is-current' : ''} ${solved[at] && !item.free ? 'is-solved' : ''}`}
-            disabled={at > index && !solved.slice(0, at).every(Boolean)} onClick={() => setIndex(at)} aria-label={`Step ${at + 1}: ${item.title}`} />)}
-        </div>
-      </header>
-      <section className="lesson-card" aria-labelledby="lesson-title">
-        <h1 id="lesson-title"><span>{index + 1}</span>{step.title}</h1>
-        <Body key={index} onSolved={solveCurrent} solved={solved[index]} />
-        <footer className="lesson-nav">
-          <button type="button" className="secondary-button" disabled={index === 0} onClick={() => setIndex(index - 1)}><ArrowLeft size={14} aria-hidden="true" /> Back</button>
-          {index < steps.length - 1 && <button type="button" className="primary-button" disabled={!solved[index]} onClick={() => setIndex(index + 1)}
-            title={solved[index] ? undefined : 'Do the task above to continue'}>Continue <ArrowRight size={14} aria-hidden="true" /></button>}
-        </footer>
-      </section>
-    </main>
-  </div>
+  return <LessonShell id="dfa" steps={steps} />
 }

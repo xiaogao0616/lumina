@@ -38,8 +38,8 @@ export default function HomePage() {
           <span className="lab-start-icon"><Lock size={22} aria-hidden="true" /></span>
           <span className="lab-start-copy">
             <small>New to automata? Start here</small>
-            <b>What is a DFA? A five-minute interactive lesson</b>
-            <span>Open a two-button lock, look inside it, and finish your first machine. No background needed.</span>
+            <b>Five interactive lessons, from DFAs to grammars</b>
+            <span>Start with a two-button lock and work up through NFAs, regular expressions, the pumping lemma and context-free grammars. No background needed.</span>
           </span>
           <ArrowRight size={20} aria-hidden="true" />
         </Link>
