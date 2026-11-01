@@ -34,15 +34,15 @@ export function MenuItem({ icon: Icon, label, hint, disabled, onSelect, close }:
 }
 
 /** Workspace-wide actions that every tab's toolbar offers, next to that tab's own tools menu. */
-export type WorkspaceActions = { openAi: () => void; openPractice: () => void }
+export type WorkspaceActions = { openAi: () => void; openPractice: () => void; openTour: () => void }
 
 export function WorkspaceButtons({ actions }: { actions: WorkspaceActions }) {
-  return <>
+  return <span className="workspace-buttons">
     <button type="button" className="tool-button toolbar-ai" aria-label="Build with AI" title="Generate from a description, or recognize a photo" onClick={actions.openAi}>
       <Sparkles size={15} aria-hidden="true" /> AI
     </button>
     <button type="button" className="tool-button toolbar-practice" aria-label="Practice" title="Practice: build a machine for a language and check it" onClick={actions.openPractice}>
       <GraduationCap size={15} aria-hidden="true" /> Practice
     </button>
-  </>
+  </span>
 }
