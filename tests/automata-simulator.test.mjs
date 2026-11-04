@@ -62,3 +62,7 @@ test('does not mutate caller data', () => {
   const [ns,es]=JSON.parse(graph);run(ns,es,'a')
   assert.equal(JSON.stringify([ns,es]),graph)
 })
+test('a rejection names the states the run ended in', () => {
+  assert.match(run(states, [e('s','q','a')], 'a').message, /ended in q, which is not an accepting state/)
+  assert.match(run(states, [e('s','q','a'), e('s','s','a')], 'a').message, /Every run ended in a non-accepting state \(s, q\)/)
+})

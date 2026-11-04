@@ -76,7 +76,7 @@ export function extractJson(text: string): unknown {
   const body = fenced ? fenced[1] : text
   const start = body.indexOf('{')
   const end = body.lastIndexOf('}')
-  if (start < 0 || end <= start) throw new Error('The model did not return JSON.')
+  if (start < 0 || end <= start) throw new Error('The model answered in words instead of building a machine. Try Generate again, or describe the language more precisely.')
   const json = body.slice(start, end + 1)
   try {
     return JSON.parse(json)
@@ -329,14 +329,17 @@ async function failure(response: Response): Promise<Error> {
     const error = record(body) ? body.error : undefined
     detail = record(error) && typeof error.message === 'string' ? error.message : typeof error === 'string' ? error : ''
   } catch { /* not JSON */ }
-  return new Error(`${failureHint(response.status)}The AI service answered ${response.status}${detail ? `: ${detail}` : ''}`)
+  return new Error(`${failureHint(response.status, detail)}The AI service answered ${response.status}${detail ? `: ${detail}` : ''}`)
 }
 
 /** A plain-language first sentence for the errors people actually hit, so a busy server isn't mistaken for a bad key. */
-export function failureHint(status: number): string {
+export function failureHint(status: number, detail = ''): string {
   if (status === 503 || status === 502 || status === 504 || status === 500) return 'The AI service is busy or briefly down; this is on its side, not your key. It was retried a few times. Wait a minute and try again, or pick another model in AI settings. '
   if (status === 429) return 'You have hit the rate limit or daily quota for this key. Wait a little, or use another key or model. '
   if (status === 401 || status === 403) return 'The service rejected the API key. Check it in AI settings. '
+  // Gemini answers a bad key with 400 rather than 401.
+  if (status === 400 && /api[ _-]?key/i.test(detail)) return 'The service rejected the API key. Check it in AI settings. '
+  if (status === 404) return 'The service does not know this model or address. Check the model name and base URL in AI settings. '
   return ''
 }
 
