@@ -187,6 +187,7 @@ Click the pink **✦ AI** button in the toolbar, next to the tools menu. You can
 
 - Pick DFA, NFA, PDA, Turing machine or CFG, or let the model choose. The run shows as a striped placeholder tab, so you can keep working while it thinks.
 - The result opens in a new tab after the same checks as an imported file: one start state, single-character symbols, a DFA that's really deterministic, grammar rules that parse.
+- If the service is busy (503, rate limits) the request is retried on its own, and Gemini falls back to a lighter model. If the answer is broken JSON or fails a check, small slips are repaired and the model gets one chance to fix its own answer.
 - It uses your own API key, called straight from the browser: Google Gemini (free key from [AI Studio](https://aistudio.google.com/apikey)), Anthropic (Claude), or any OpenAI-compatible endpoint with a vision model. The key stays in this browser's local storage and goes only to the address you set.
 
 <div align="center">
