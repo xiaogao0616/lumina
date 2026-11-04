@@ -2,334 +2,217 @@
 
 # ⚡ Automata Lab
 
-**Learn automata theory by doing it: draw DFAs, NFAs, PDAs and Turing machines, write grammars, and watch strings walk through them.**
+**Learn automata theory by building the machines yourself.**
 
-A loud, hands-on DFA / NFA / PDA / TM / CFG workbench with five interactive lessons for complete beginners. It runs entirely in your browser. No account, no backend, and a cat.
+Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free grammars, and watch a string walk through each one until it's accepted or rejected. It comes with five hands-on lessons for complete beginners. Everything runs in your browser: no account, no server, and there's a cat.
 
-[![Live demo](https://img.shields.io/badge/▶_Live_demo-xiaogao0616.github.io%2Flumina-ffd23f?style=for-the-badge&labelColor=121212)](https://xiaogao0616.github.io/lumina/)
+[![Open Automata Lab](https://img.shields.io/badge/▶_Open_Automata_Lab-xiaogao0616.github.io%2Flumina-ffd23f?style=for-the-badge&labelColor=121212)](https://xiaogao0616.github.io/lumina/)
 
 ![Next.js](https://img.shields.io/badge/Next.js_16-000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React_19-20232a?logo=react&logoColor=61dafb)
 ![React Flow](https://img.shields.io/badge/React_Flow-ff0072?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-152_passing-34d399)
+![Tests](https://img.shields.io/badge/tests-156_passing-34d399)
 ![No backend](https://img.shields.io/badge/backend-none-67e8f9)
 
 <img src="docs/screenshot-home.jpg" alt="The Automata Lab home page: the headline One workspace, five rulebooks, an animated automaton reading aab, and a yellow banner linking to five interactive lessons" width="100%">
 
 </div>
 
----
+## Where to start
 
-## What is it?
+| If you… | Go to |
+| --- | --- |
+| have never seen an automaton | [**The lessons**](https://xiaogao0616.github.io/lumina/learn/): five short ones, from your first DFA to grammars, about half an hour in all |
+| want to check a homework machine or grammar | [**A workspace**](https://xiaogao0616.github.io/lumina/dfa/): draw it, run strings, convert it, export it |
+| want practice that grades itself | **Practice** in any DFA/NFA toolbar: 12 languages, each answer checked exactly |
+| are working on proofs | The [**pumping lemma game**](https://xiaogao0616.github.io/lumina/pumping/) and the [**deciders**](https://xiaogao0616.github.io/lumina/deciders/) from Sipser chapter 4 |
 
-A whiteboard for **automata theory**. Drag states onto a canvas, click to connect them, label the arrows, then type a string and **watch it move through the machine** until it is accepted or rejected. For grammars you type the rules instead and watch the parse tree grow.
+## 📖 Lessons
 
-It's made for students learning formal languages, TAs who need a quick example, and anyone who wants to check a homework DFA, PDA, Turing machine or grammar before handing it in.
+[`/learn`](https://xiaogao0616.github.io/lumina/learn/) follows Sipser chapters 1 and 2 and assumes nothing. Each step asks you to *do* something, like press buttons, tap a state, predict an answer, or write a regex or a grammar. **Continue** unlocks only once you've done it.
 
-**Never seen an automaton?** Start with the [interactive lessons](https://xiaogao0616.github.io/lumina/learn/). They take you from your first DFA to context-free grammars in about half an hour, one small task at a time.
-
-Five workspaces share one window as tabs, so a grammar can sit right next to the PDA you built from it.
-
-| Workspace | Open it | What you do there |
+| # | Lesson | You will… |
 | --- | --- | --- |
-| **DFA** | [`/dfa`](https://xiaogao0616.github.io/lumina/dfa/) | Draw a deterministic automaton, find missing transitions, complete it with a sink, minimize it |
-| **NFA** | [`/nfa`](https://xiaogao0616.github.io/lumina/nfa/) | Use ε-moves and branching, build one from a regex, convert it to a DFA |
-| **PDA** | [`/pda`](https://xiaogao0616.github.io/lumina/pda/) | Put stack rules on the arrows and watch the stack change move by move |
-| **TM** | [`/tm`](https://xiaogao0616.github.io/lumina/tm/) | Write read/write/move rules on the arrows and watch the head work along the tape |
-| **CFG** | [`/cfg`](https://xiaogao0616.github.io/lumina/cfg/) | Write rules as text, get a parse tree and leftmost derivation, convert to a PDA |
+| 1 | [What is a DFA?](https://xiaogao0616.github.io/lumina/learn/dfa/) | open a two-button lock, look inside it, name the parts, and finish your first machine |
+| 2 | [Machines that can guess](https://xiaogao0616.github.io/lumina/learn/nfa/) | watch an NFA split into copies, follow ε-arrows, and meet its subset-construction DFA |
+| 3 | [Regular expressions](https://xiaogao0616.github.io/lumina/learn/regex/) | predict what union, concatenation and star match, then write a regex that's checked on every string up to length 7 |
+| 4 | [What finite memory can't do](https://xiaogao0616.github.io/lumina/learn/nonregular/) | break a DFA that tries to count aⁿbⁿ and discover the pumping lemma yourself |
+| 5 | [Grammars that grow strings](https://xiaogao0616.github.io/lumina/learn/cfg/) | derive strings by tapping rules, then write a grammar for even palindromes |
+
+Your progress is saved in the browser. A lesson you leave halfway reopens on the step you still have to do. A lesson you've finished opens with every step unlocked, so you can jump back to any part of it.
 
 <div align="center">
-<img src="docs/screenshot-nfa.jpg" alt="The starting NFA for strings that contain aa or bb, with ε-moves into two branches and its generated accepted strings below the canvas" width="100%">
-<br><sub>An NFA tab, starting with a machine for strings that contain <code>aa</code> or <code>bb</code>. Every workspace gets its own colour: blue for DFA, violet for NFA, orange for PDA, lime for TM, green for CFG.</sub>
-</div>
-
-## 📖 Learn from zero
-
-Automata theory is hard to pick up from a canvas alone, so [`/learn`](https://xiaogao0616.github.io/lumina/learn/) has five short lessons in the style of Brilliant. They follow Sipser chapters 1 and 2 and need no background. Every step asks you to do something (press buttons, tap a state, predict an answer, write a regex or a grammar) and Continue unlocks only once you've done it. The lesson page ticks the ones you've finished.
-
-| # | Lesson | What you do |
-| --- | --- | --- |
-| 1 | [**What is a DFA?**](https://xiaogao0616.github.io/lumina/learn/dfa/) | Open a two-button lock, look inside it, name the parts, predict accept or reject, spot a missing arrow, and finish your first machine |
-| 2 | [**Machines that can guess**](https://xiaogao0616.github.io/lumina/learn/nfa/) | Watch an NFA split into copies, find which copies survive, follow ε-arrows, and find the matching state in its subset-construction DFA |
-| 3 | [**Regular expressions**](https://xiaogao0616.github.io/lumina/learn/regex/) | Predict what union, concatenation and star match, read regexes aloud, write one that's checked on every string up to length 7, and see each regex's smallest DFA |
-| 4 | [**What finite memory can't do**](https://xiaogao0616.github.io/lumina/learn/nonregular/) | Break a DFA that tries to count aⁿbⁿ, find the state that must repeat, and pump the loop: the pumping lemma, discovered step by step |
-| 5 | [**Grammars that grow strings**](https://xiaogao0616.github.io/lumina/learn/cfg/) | Derive strings by tapping rules, see a grammar generate aⁿbⁿ and balanced parentheses, and write a grammar for even palindromes |
-
-Turing machines and decidability come later as lessons. Until then there's the TM workspace and the [deciders page](https://xiaogao0616.github.io/lumina/deciders/).
-
-The first time you open a workspace, a **three-step quick tour** shows how to add states, draw transitions and test a string. The `?` in the Components panel brings it back.
-
-<div align="center">
-<img src="docs/screenshot-learn.jpg" alt="The lesson page: From your first DFA to context-free grammars, with lessons 1 and 2 ticked as done and a Continue with lesson 3 button" width="100%">
-<br><sub>The lesson page remembers which lessons you've finished.</sub>
-<br><br>
 <img src="docs/screenshot-lesson.jpg" alt="Lesson 2, One letter, two arrows: an NFA for strings ending in ab with two states lit after typing a b" width="100%">
 <br><sub>Lesson 2: press <b>a</b> and <b>b</b> and watch the NFA's copies split and die.</sub>
 </div>
 
-## ✨ Features
+## 🧰 Five workspaces, one window
+
+Each kind of machine gets its own workspace. They open as tabs side by side, so a grammar can sit next to the PDA you built from it. Conversions always open a **new tab**, so they never overwrite your work, and every tab saves itself as you go.
+
+| Workspace | What's special there |
+| --- | --- |
+| [**DFA**](https://xiaogao0616.github.io/lumina/dfa/) | Diagnostics name every missing arrow. **Validate DFA** explains what's wrong in plain words and can fill the gaps with a sink state. Minimize, complement, convert to a regex. |
+| [**NFA**](https://xiaogao0616.github.io/lumina/nfa/) | ε-moves and branching. Build one from a regex (Thompson's construction) and convert it to a DFA (subset construction). |
+| [**PDA**](https://xiaogao0616.github.io/lumina/pda/) | Rules like `a, X → YZ` on the arrows, and a stack panel that follows the run move by move. |
+| [**TM**](https://xiaogao0616.github.io/lumina/tm/) | Single-tape and deterministic, as in Sipser. A tape panel follows the head, and runs that loop are caught. Examples include `w#w`, `0^(2ⁿ)` and `aⁿbⁿcⁿ`. |
+| [**CFG**](https://xiaogao0616.github.io/lumina/cfg/) | Type rules like `S → aSb \| ε` and get a parse tree and leftmost derivation. You can also convert to Chomsky normal form step by step, check for ambiguity, or convert to a PDA. |
+
+**Every workspace can:**
+
+- Add a state by dragging a component onto the canvas or just tapping it. Click one state, then another, to draw an arrow.
+- **Run animated** to watch the string walk through the machine, or **Run instantly** for just the verdict.
+- Generate accepted strings shortest-first, or fill in a random test string.
+- Export JSON, SVG or LaTeX (TikZ), and make a **share link** that packs the whole tab into the URL.
+- Undo and redo with `Ctrl+Z` / `Ctrl+Shift+Z`. A three-step tour runs the first time you open a workspace.
 
 <table>
 <tr>
-<td width="50%" valign="top">
-
-### 🎨 Build
-- Drag-and-drop **start / normal / accept** states
-- Click a state, then a target, to draw a transition; put **several characters** on one arrow
-- Custom state categories (`r₀, r₁, …`), each made as start, plain or accept states
-- Change a placed state's kind from its hover menu: toggle **accepting**, or **make it the start state**. Its transitions stay put
-- A start state can also accept
-- Drag a state back onto the side panel to delete it; the panel turns into a big **delete zone** while you drag
-- Undo / redo (`Ctrl+Z` / `Ctrl+Shift+Z`)
-
-</td>
-<td width="50%" valign="top">
-
-### ▶️ Test
-- **Run animated**: the string walks state by state, and NFA branches are tried one at a time
-- **Run instantly**: the verdict without the walk
-- 🎲 Fill in a random string from the alphabet in use
-- ✨ **Generate accepted strings**, shortest first; each click shows the next 5
-- Live diagnostics: missing transitions, conflicts, ε-moves, branching
-
-</td>
+<td width="50%"><img src="docs/screenshot-nfa.jpg" alt="An NFA for strings containing aa or bb, with ε-moves into two branches"><br><sub>An NFA with ε-moves into two branches.</sub></td>
+<td width="50%"><img src="docs/screenshot-tm.jpg" alt="Sipser's w#w Turing machine mid-run with the tape panel"><br><sub>Sipser's <code>w#w</code> machine, mid-run.</sub></td>
 </tr>
 <tr>
-<td valign="top">
-
-### 🔁 Transform
-- **NFA → DFA** by subset construction
-- **DFA → NFA** copy
-- **Minimize** a DFA (Moore partition refinement)
-- **Complete with sink**: fills every missing transition
-- **Regex → NFA** with Thompson's construction (`| * + ? ( )`, `\` escapes)
-- **CFG → PDA** by the standard construction
-
-</td>
-<td valign="top">
-
-### 💾 Keep
-- Browser-style **tabs**: mix as many DFAs, NFAs, PDAs and grammars as you like
-- Conversions always open a **new tab** and never overwrite your work
-- Every tab is saved automatically in your browser
-- Import / export **JSON**
-- Export a clean **SVG** for slides and homework
-
-</td>
-</tr>
-<tr>
-<td valign="top">
-
-### 📚 Pushdown automata
-- Each arrow rule reads a character, pops a symbol and pushes a string (`a, X → YZ`), any part ε
-- A **stack panel** follows the animated run move by move
-- Diagnostics list the rule pairs that make the PDA nondeterministic
-- Examples: `aⁿbⁿ` and even palindromes `wwᴿ`
-
-</td>
-<td valign="top">
-
-### ✍️ Context-free grammars
-- Write rules as text: `S → aSb | ε`
-- Test a string and get its **parse tree** and **leftmost derivation**, animated step by step
-- Flags undefined, non-productive and unreachable nonterminals
-- Generate the shortest strings the grammar derives
-- Convert to **Chomsky normal form**, one Sipser step at a time
-- **Ambiguity check**: finds the shortest string with two parse trees and shows both
-
-</td>
+<td><img src="docs/screenshot-cfg.jpg" alt="The parse tree and leftmost derivation of x+x*x"><br><sub>A grammar's parse tree and leftmost derivation.</sub></td>
+<td><img src="docs/screenshot-pda.jpg" alt="The palindrome PDA in the dark theme, mid-run, with the stack panel"><br><sub>A PDA in the dark theme, with its stack.</sub></td>
 </tr>
 </table>
 
-### 🖨️ Turing machines
-- Single-tape and deterministic, as in Sipser chapter 3. Each rule reads the symbol under the head, writes one and moves L or R (`0 → x, R`; leave Write empty to keep the symbol, giving `0 → 0, R`). `_` types the blank ⊔.
-- The tape is infinite to the right and the head stays put if it moves left off the first cell. An accepting state halts and accepts; a missing rule rejects, so there's no reject state to draw.
-- A **tape panel** follows the run cell by cell. A run that repeats a configuration is reported as **looping forever**, and one that goes 20,000 moves without halting gets **no verdict**.
-- Examples: Sipser's `w#w` and `0^(2ⁿ)`, `aⁿbⁿcⁿ` (not context-free) and unary addition. The ✦ AI button builds a Turing machine from a description too.
-
-<div align="center">
-<img src="docs/screenshot-tm.jpg" alt="Sipser's w#w Turing machine mid-run on 01#01, with the tape panel showing x x # x x and the head on the second x" width="100%">
-<br><sub>A Turing machine tab running Sipser's machine for <code>w#w</code>. The tape panel shows the head and what it has crossed off.</sub>
-</div>
-
-<div align="center">
-<img src="docs/screenshot-cfg.jpg" alt="The parse tree and leftmost derivation of x+x*x in an arithmetic grammar, with the cat cheering Accepted" width="100%">
-<br><sub>A grammar tab: rules on the left, the parse tree and leftmost derivation of <code>x+x*x</code> on the right.</sub>
-<br><br>
-<img src="docs/screenshot-dfa-diagnostics.jpg" alt="The DFA diagnostics panel listing the two transitions still missing from q₁" width="100%">
-<br><sub>Diagnostics name every (state, character) pair that's still missing, so you know what's left before the DFA is complete.</sub>
-</div>
-
 ## 🎓 Practice and proofs
 
-- **Practice mode** (the green **Practice** button in the toolbar): twelve languages to build a DFA or NFA for. *Check my answer* compares your machine with the reference exactly and names the shortest string it gets wrong.
-- **Compare or combine** two tabs: an equivalence check with shortest counterexamples, plus union, intersection and difference by product construction, and complement.
-- **DFA/NFA → regex** by state elimination, in the same syntax Regex → NFA reads.
-- **Pumping lemma game** at `/pumping`: the computer picks *p* and the split, you pick *s* and *i*, and a table shows whether your *s* wins against every split.
-- **Deciders** at `/deciders` (Sipser chapter 4): A<sub>DFA</sub>, A<sub>NFA</sub>, A<sub>REX</sub>, E<sub>DFA</sub>, EQ<sub>DFA</sub>, A<sub>CFG</sub> and E<sub>CFG</sub>, each run the way the book's proof does it and replayed step by step on an example or one of your own tabs, with the reason it always halts. A last panel shows why A<sub>TM</sub> has no decider.
-- **Share link** packs a tab into the URL, and **Export LaTeX** writes a TikZ picture of an automaton or an `align*` block of a grammar for homework.
+- **Practice**: build a DFA or NFA for one of 12 languages. *Check my answer* decides exactly whether your machine is right, so any correct design passes. If it's wrong, it shows the shortest string it gets wrong. Solved exercises keep their check mark, and **Open** takes you back to the tab where you built one.
+- **Compare or combine** two tabs: test whether they're equivalent (with the shortest counterexample), or build their union, intersection or difference.
+- **Pumping lemma game**: the computer picks *p* and the split, and you pick *s* and *i*. A table shows whether your *s* beats every split, and the languages you've won on get a badge.
+- **Deciders** (Sipser chapter 4): A<sub>DFA</sub>, A<sub>NFA</sub>, A<sub>REX</sub>, E<sub>DFA</sub>, EQ<sub>DFA</sub>, A<sub>CFG</sub> and E<sub>CFG</sub>, each run the way the proof does it, step by step, along with why it always halts. A last panel shows why A<sub>TM</sub> has none.
 
-<div align="center">
-<img src="docs/screenshot-practice.jpg" alt="A practice exercise, Ends in ab, with Check my answer showing the shortest string the machine gets wrong" width="100%">
-<br><sub>Practice mode: the check names the shortest string your machine gets wrong.</sub>
-<br><br>
-<img src="docs/screenshot-pumping.jpg" alt="The pumping lemma game: the opponent splits aaaabbbb, and pumping y twice leaves aⁿbⁿ" width="100%">
-<br><sub>The pumping lemma game: the opponent picks the split, you pick <i>i</i>.</sub>
-<br><br>
-<img src="docs/screenshot-deciders.jpg" alt="The EQ_DFA decider comparing two DFAs for strings ending in ab: the product machine C mid-way through marking reachable states" width="100%">
-<br><sub>The EQ<sub>DFA</sub> decider: build C for the symmetric difference, then mark what's reachable.</sub>
-</div>
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshot-practice.jpg" alt="A practice exercise showing the shortest string the machine gets wrong"><br><sub>Practice names the shortest string you get wrong.</sub></td>
+<td width="50%"><img src="docs/screenshot-pumping.jpg" alt="The pumping lemma game splitting aaaabbbb"><br><sub>The pumping lemma as a two-player game.</sub></td>
+</tr>
+</table>
 
 ## ✦ Build with AI
 
-Click the pink **✦ AI** button in the toolbar, next to the tools menu. You can **describe a language** ("strings over {a, b} that end in ab") or **take or choose a photo** of a hand-drawn diagram or grammar.
+The pink **✦ AI** button builds a machine from a description ("strings over {a, b} that end in ab") or from a photo of a hand-drawn diagram. You can choose the machine type or let the model pick. It runs in the background while you keep working.
 
-- Pick DFA, NFA, PDA, Turing machine or CFG, or let the model choose. The run shows as a striped placeholder tab, so you can keep working while it thinks.
-- The result opens in a new tab after the same checks as an imported file: one start state, single-character symbols, a DFA that's really deterministic, grammar rules that parse.
-- If the service is busy (503, rate limits) the request is retried on its own, and Gemini falls back to a lighter model. If the answer is broken JSON or fails a check, small slips are repaired and the model gets one chance to fix its own answer.
-- It uses your own API key, called straight from the browser: Google Gemini (free key from [AI Studio](https://aistudio.google.com/apikey)), Anthropic (Claude), or any OpenAI-compatible endpoint with a vision model. The key stays in this browser's local storage and goes only to the address you set.
+The result has to pass the same checks as an imported file before it opens in a new tab. Busy servers are retried, and broken answers are repaired or sent back to the model once. If something still fails, the error says what to do: check the key, wait out the quota, or rephrase.
 
-<div align="center">
-<img src="docs/screenshot-ai.jpg" alt="The Build with AI dialog with a description of a language and the AI service settings" width="100%">
-</div>
+It uses **your own API key**, called straight from the browser: Google Gemini (free key from [AI Studio](https://aistudio.google.com/apikey)), Anthropic, or any OpenAI-compatible endpoint. The key stays in this browser and goes only to the address you set.
 
-## 🌗 Light, dark, and a cat
+## 📱 On a phone, too
 
-The look is neo-brutalist on purpose: thick ink outlines, hard offset shadows, a grid-paper canvas, Bricolage Grotesque headlines with Space Grotesk and JetBrains Mono underneath.
-
-- **Light and dark themes** with a sliding switch on the home page and in every workspace. The choice is remembered, and the page never flashes the wrong theme on load.
-- **The home page automaton is alive**: a token runs `aab`, `ab` and `ε` through a small NFA, reading the tape and popping *accepted ✓* at the end.
-- **A workspace cat** sits at the corner of the canvas. Its eyes follow your pointer, it purrs when you click it, cheers when a string is accepted, sulks when one is rejected, stares while a run animates, and falls asleep if you leave it alone. Tuck it away with its ✕; a paw button brings it back.
+On a narrow screen the canvas takes the full width and the page scrolls, with the panels underneath. The components panel tucks into a side rail. Since phones can't drag, tapping a component drops a new state into an empty spot. The lessons work on a phone as well.
 
 <div align="center">
-<img src="docs/screenshot-pda.jpg" alt="The palindrome PDA in the dark theme, mid-run on abbba, with the stack panel showing b, a, $" width="100%">
-<br><sub>The dark theme, with a PDA mid-run. The stack panel shows the stack after each move.</sub>
-<br><br>
-<img src="docs/screenshot-cat.jpg" alt="The workspace cat smiling with an Accepted speech bubble" width="420">
+<img src="docs/screenshot-phone.jpg" alt="Automata Lab on a phone: the NFA workspace with the canvas at full width, and lesson 2 with the a and b buttons" width="560">
 </div>
 
-## 🧭 How the pieces fit
+## 🌗 The look
 
-```mermaid
-flowchart LR
-    R["Regex<br/>a(b|c)*d"] -- Thompson --> N["NFA<br/>ε-moves, branching"]
-    N -- subset construction --> D["DFA"]
-    D -- copy --> N
-    D -- complete with sink --> C["Complete DFA"]
-    C -- minimize --> M["Minimal DFA"]
-    N & D & C & M -. run a string .-> T{{"Accepted / Rejected"}}
-    G["CFG<br/>S → aSb | ε"] -- standard construction --> P["PDA<br/>stack"]
-    G & P -. run a string .-> T
-    AI["✦ AI<br/>text or photo"] -. new tab .-> N & D & P & G
-```
+It's neo-brutalist on purpose: thick ink outlines, hard shadows, a grid-paper canvas, with Bricolage Grotesque, Space Grotesk and JetBrains Mono for type. Light and dark themes are remembered and never flash on load.
 
-## 🚀 Try it
+A cat sits at the corner of the canvas. It follows your pointer, cheers when a string is accepted, sulks when one is rejected, and falls asleep if you leave it alone.
 
-**In the browser:** open the [live demo](https://xiaogao0616.github.io/lumina/). There's nothing to install. New to the subject? Begin with [lesson 1](https://xiaogao0616.github.io/lumina/learn/dfa/).
-
-**Locally:**
+## 🚀 Run it yourself
 
 ```bash
 git clone https://github.com/xiaogao0616/lumina.git
 cd lumina
 npm install
-npm run dev        # → http://localhost:3000
+npm run dev          # http://localhost:3000
 ```
 
-<details>
-<summary><b>Walkthrough: regex → NFA → minimal DFA</b></summary>
+```bash
+npm test             # 156 tests with node --test
+npm run typecheck    # route types + tsc --noEmit
+npm run build        # static export into out/
+```
 
-1. Open **NFA** and pick **NFA tools → Regex → NFA…**
-2. Type `a(b|c)*d` and press **Generate**.
-3. Enter `abcbd` in the input and press **Run animated**. Watch it reach the accept state.
-4. **NFA tools → Convert to DFA** opens the deterministic version in a new tab.
-5. In that tab, use **DFA tools → Minimize** to see how small the machine can get.
+Every push to `main` is built and published to GitHub Pages by [`deploy.yml`](.github/workflows/deploy.yml). The site lives under `/lumina`, so the workflow builds with `NEXT_PUBLIC_BASE_PATH=/lumina`. Locally the variable is empty and the app runs at `/`.
+
+<details>
+<summary><b>Three short walkthroughs</b></summary>
+
+**Regex → NFA → minimal DFA**
+1. Open **NFA**, then **NFA tools → Regex → NFA…**, type `a(b|c)*d` and press **Generate**.
+2. Run `abcbd` animated and watch it reach the accept state.
+3. **NFA tools → Convert to DFA** opens the deterministic version in a new tab. **DFA tools → Minimize** shrinks it.
+
+**Watch a PDA use its stack**
+1. Open **PDA**. It starts with a machine for palindromes over `{a, b}`.
+2. Run `abbba` animated. `$` goes on first, the first half is pushed, the machine guesses the middle, and then the stack is popped one symbol per character.
+3. Try `abab`: no guess of the middle works, so it's rejected.
+
+**From a grammar to a PDA**
+1. Open **CFG**, then **CFG tools → Example: Arithmetic expressions**.
+2. Run `x+x*x` and watch the parse tree grow alongside the leftmost derivation.
+3. **CFG tools → Convert to PDA** opens the equivalent PDA. Run the same string there.
 
 </details>
 
 <details>
-<summary><b>Walkthrough: watch a PDA use its stack</b></summary>
+<summary><b>Notation</b> (Sipser's conventions)</summary>
 
-1. Open **PDA**. It starts with a machine for every palindrome over `{a, b}`.
-2. Enter `abbba` and press **Run animated**. The stack panel in the corner shows `$` go on first, then `a` and `b` as the first half is read. At the middle `b` the machine guesses it is halfway, skips that character, and pops one symbol for each character after it.
-3. Try `abab`. No guess of the middle lets the second half match the stack, so it never reaches the accept state.
-4. Click an arrow to add or remove rules. Leave **Read**, **Pop** or **Push** blank for ε.
-5. **PDA tools → Example: aⁿbⁿ** loads a smaller machine. Open the diagnostics pill above the canvas on the palindrome PDA to see the rule pairs that branch.
+**DFA.** Exactly one arrow for every state and letter, and no ε. Validate and tests wait until the machine is complete. **Complete with sink** adds the missing arrows for you.
 
-</details>
+**PDA rules** are `a, X → YZ`: read `a`, pop `X`, push `YZ`.
+- Any part can be ε.
+- The first pushed character ends up on top.
+- The stack starts empty, so most machines begin with `ε, ε → $`.
+- A string is accepted when all of it is read and some run is in an accepting state. The stack doesn't need to be empty.
+- Runs are searched breadth-first with a cap on stack depth. If a run hits the cap, the result says so.
 
-<details>
-<summary><b>Walkthrough: from a grammar to a PDA</b></summary>
+**TM rules** are `0 → x, R`: read, write, move. `_` is the blank ⊔.
+- The tape is infinite to the right, and moving left from the first cell stays put.
+- Entering an accepting state accepts. A missing rule rejects.
+- A repeated configuration is reported as looping forever. A run with no verdict after 20,000 moves stops there.
 
-1. Open **CFG** and pick **CFG tools → Example: Arithmetic expressions**.
-2. Enter `x+x*x` and press **Run animated**. The parse tree grows in the same order as the leftmost derivation on the right.
-3. Press **Generate 5 strings** a few times. Each click shows the next five, shortest first, and starts over when the list runs out.
-4. **CFG tools → Convert to PDA** opens the equivalent PDA in a new tab. Run `x+x*x` there too and watch the stack.
-
-</details>
-
-## 📐 Notation
-
-The PDA and CFG workspaces follow the conventions in Sipser's *Introduction to the Theory of Computation*.
-
-**PDA rules** are written `a, X → YZ`: read `a`, pop `X`, push `YZ`.
-- Any of the three parts can be ε, which means "don't read", "don't pop" or "push nothing".
-- The pushed string's first character ends up on top, so pushing `YZ` leaves `Y` above `Z`.
-- The stack starts empty. Most machines begin with `ε, ε → $` to mark the bottom.
-- A string is accepted when all of it has been read and some run is in an accepting state. The stack doesn't have to be empty.
-- Runs are searched breadth-first with a cap on stack depth, so an ε-loop that keeps pushing can't freeze the page. If the cap is hit, the result says so.
-
-**Grammars** are written one or more rules per line, like `S → aSb | ε`.
-- `->` and `::=` work as well as `→`. The toolbar has buttons for `→`, `ε` and `|`.
-- Nonterminals are single uppercase letters `A`–`Z`. Every other character is a terminal, and spaces are ignored.
+**Grammars** use one or more rules per line, like `S → aSb | ε`.
+- `->` and `::=` also work for the arrow.
+- Nonterminals are single uppercase letters. Every other character is a terminal, and spaces are ignored.
 - `ε` or an empty alternative is the empty string.
-- The first rule's left side is the start symbol. Another line for the same letter adds more alternatives.
+- The first rule's left side is the start symbol.
 - Lines starting with `#` or `//` are comments.
 
-## 🧠 Under the hood
+</details>
 
-All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate from the UI. The lessons reuse it too: `components/lesson-kit.tsx` holds their shared diagram, answer widgets and step shell.
+<details>
+<summary><b>Under the hood</b></summary>
+
+All the theory is plain, tested TypeScript in [`lib/`](lib/), kept apart from the UI. The lessons reuse it through `components/lesson-kit.tsx`.
 
 | Module | What it does |
 | --- | --- |
-| `automata-simulator.ts` | Decides accept / reject, following ε-closures |
-| `nfa-to-dfa.ts` | Subset construction; missing moves go to an ∅ sink |
-| `dfa-minimize.ts` | Moore / table-filling minimization of reachable states |
-| `regex-to-nfa.ts` | Thompson construction for a small regex dialect |
-| `automata-dfa.ts` | DFA rules: conflicts, missing transitions, sink completion |
-| `path-animation.ts` | Enumerates the walk(s) a string takes, for the animation |
-| `accepted-strings.ts` | Lists accepted strings in shortlex order, five at a time |
-| `pda.ts` | PDA rules, a bounded breadth-first run with the stack at every move, examples, branching |
-| `turing.ts` | Turing machine rules, a run with the tape at every move, loop detection, examples |
-| `cfg.ts` | Grammar parsing and checks, Earley membership with a parse tree, string generation, CFG → PDA |
-| `ai-automaton.ts` | Prompts for the AI builder and validation of what the model sends back |
-| `automaton-graph.ts` | Shared graph types, state colours and theme-aware ink |
-| `edge-geometry.ts` / `graph-svg.ts` | Edge routing on the canvas, and standalone SVG export with the same routing |
+| `automata-simulator.ts` | Accept or reject, following ε-closures |
+| `automata-dfa.ts` | DFA rules: conflicts, missing arrows, completing with a sink |
+| `nfa-to-dfa.ts` / `dfa-minimize.ts` | Subset construction, and minimization of reachable states |
+| `regex-to-nfa.ts` | Thompson construction for `\| * + ? ( )` and `\` escapes |
 | `regular-ops.ts` | Equivalence with shortest counterexamples, product constructions, complement, state elimination to regex |
-| `cfg-transform.ts` | Chomsky normal form with every step, and a bounded ambiguity search |
-| `deciders.ts` / `decider-examples.ts` | The chapter 4 deciders with a trace of every stage, and their example inputs |
-| `exercises.ts` / `pumping.ts` | Practice exercises and their checker; languages and splits for the pumping lemma game |
-| `share-link.ts` / `graph-tikz.ts` | Compressed share links; TikZ and LaTeX export |
-| `lessons.ts` | The lesson list and the progress saved in this browser |
-| `editor-storage.ts` | Versioned, validated local saves and tab index |
+| `pda.ts` / `turing.ts` | Bounded runs with the stack or tape at every move, examples, branching and loop detection |
+| `cfg.ts` / `cfg-transform.ts` | Grammar parsing and checks, Earley parsing with a parse tree, CFG → PDA, Chomsky normal form, ambiguity search |
+| `deciders.ts` / `decider-examples.ts` | The chapter 4 deciders with a trace of every stage |
+| `exercises.ts` / `pumping.ts` | The practice checker, and the pumping lemma game's languages and splits |
+| `accepted-strings.ts` / `path-animation.ts` | Accepted strings in shortlex order, and the walks behind the animation |
+| `ai-automaton.ts` | Prompts for the AI builder, plus repair and validation of what comes back |
+| `edge-geometry.ts` / `graph-svg.ts` / `graph-tikz.ts` | Edge routing, SVG export and TikZ/LaTeX export |
+| `editor-storage.ts` / `share-link.ts` / `lessons.ts` | Validated local saves, share links, and lesson progress |
 
-```bash
-npm test           # 152 tests, node --test
-npm run typecheck  # route types + tsc --noEmit
-npm run build      # static export into out/
+```mermaid
+flowchart LR
+    R["Regex"] -- Thompson --> N["NFA"]
+    N -- subset construction --> D["DFA"]
+    D -- complete with sink --> C["Complete DFA"]
+    C -- minimize --> M["Minimal DFA"]
+    D & N -- state elimination --> R
+    G["CFG"] -- standard construction --> P["PDA"]
+    AI["✦ AI: text or photo"] -. new tab .-> N & D & P & G
 ```
 
-## 📦 Deployment
-
-Every push to `main` is built as a static export and published to GitHub Pages by [`deploy.yml`](.github/workflows/deploy.yml). The site lives under `/lumina`, so the workflow passes that path to the build as `NEXT_PUBLIC_BASE_PATH`. Locally the variable is empty and the app runs at `/`.
-
-```bash
-NEXT_PUBLIC_BASE_PATH=/lumina npm run build   # reproduce the Pages build locally
-```
+</details>
 
 ---
 
 <div align="center">
-<sub>Built with Next.js and React Flow · Your graphs never leave your browser (unless you ask the AI)</sub>
+<sub>Built with Next.js and React Flow · Your work never leaves your browser unless you ask the AI</sub>
 </div>
