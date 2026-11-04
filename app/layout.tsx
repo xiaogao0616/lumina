@@ -31,14 +31,12 @@ export const metadata: Metadata = {
   },
 }
 
-const themeScript = `try{var t=localStorage.getItem('automata-lab-theme');if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}`
+// Light by default, whatever the system setting; dark only once someone picks it with the toggle.
+const themeScript = `try{document.documentElement.dataset.theme=localStorage.getItem('automata-lab-theme')==='dark'?'dark':'light'}catch(e){document.documentElement.dataset.theme='light'}`
 
 export const viewport: Viewport = {
-  colorScheme: 'light dark',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: 'white' },
-    { media: '(prefers-color-scheme: dark)', color: 'black' },
-  ],
+  colorScheme: 'light',
+  themeColor: 'white',
 }
 
 export default function RootLayout({
