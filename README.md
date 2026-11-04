@@ -2,9 +2,9 @@
 
 # ⚡ Automata Lab
 
-**Draw finite and pushdown automata, write grammars, and watch strings walk through them.**
+**Learn automata theory by doing it: draw DFAs, NFAs, PDAs and Turing machines, write grammars, and watch strings walk through them.**
 
-A loud, hands-on DFA / NFA / PDA / CFG workbench that runs entirely in your browser. No account, no backend, and a cat.
+A loud, hands-on DFA / NFA / PDA / TM / CFG workbench with five interactive lessons for complete beginners. It runs entirely in your browser. No account, no backend, and a cat.
 
 [![Live demo](https://img.shields.io/badge/▶_Live_demo-xiaogao0616.github.io%2Flumina-ffd23f?style=for-the-badge&labelColor=121212)](https://xiaogao0616.github.io/lumina/)
 
@@ -15,7 +15,7 @@ A loud, hands-on DFA / NFA / PDA / CFG workbench that runs entirely in your brow
 ![Tests](https://img.shields.io/badge/tests-150_passing-34d399)
 ![No backend](https://img.shields.io/badge/backend-none-67e8f9)
 
-<img src="docs/screenshot-home.jpg" alt="The Automata Lab home page: a bold headline, an animated automaton reading aab and accepting it, and one card per workspace" width="100%">
+<img src="docs/screenshot-home.jpg" alt="The Automata Lab home page: the headline One workspace, five rulebooks, an animated automaton reading aab, and a yellow banner linking to five interactive lessons" width="100%">
 
 </div>
 
@@ -26,6 +26,8 @@ A loud, hands-on DFA / NFA / PDA / CFG workbench that runs entirely in your brow
 A whiteboard for **automata theory**. Drag states onto a canvas, click to connect them, label the arrows, then type a string and **watch it move through the machine** until it is accepted or rejected. For grammars you type the rules instead and watch the parse tree grow.
 
 It's made for students learning formal languages, TAs who need a quick example, and anyone who wants to check a homework DFA, PDA, Turing machine or grammar before handing it in.
+
+**Never seen an automaton?** Start with the [interactive lessons](https://xiaogao0616.github.io/lumina/learn/). They take you from your first DFA to context-free grammars in about half an hour, one small task at a time.
 
 Five workspaces share one window as tabs, so a grammar can sit right next to the PDA you built from it.
 
@@ -42,6 +44,30 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 <br><sub>An NFA tab, starting with a machine for strings that contain <code>aa</code> or <code>bb</code>. Every workspace gets its own colour: blue for DFA, violet for NFA, orange for PDA, lime for TM, green for CFG.</sub>
 </div>
 
+## 📖 Learn from zero
+
+Automata theory is hard to pick up from a canvas alone, so [`/learn`](https://xiaogao0616.github.io/lumina/learn/) has five short lessons in the style of Brilliant. They follow Sipser chapters 1 and 2 and need no background. Every step asks you to do something (press buttons, tap a state, predict an answer, write a regex or a grammar) and Continue unlocks only once you've done it. The lesson page ticks the ones you've finished.
+
+| # | Lesson | What you do |
+| --- | --- | --- |
+| 1 | [**What is a DFA?**](https://xiaogao0616.github.io/lumina/learn/dfa/) | Open a two-button lock, look inside it, name the parts, predict accept or reject, spot a missing arrow, and finish your first machine |
+| 2 | [**Machines that can guess**](https://xiaogao0616.github.io/lumina/learn/nfa/) | Watch an NFA split into copies, find which copies survive, follow ε-arrows, and find the matching state in its subset-construction DFA |
+| 3 | [**Regular expressions**](https://xiaogao0616.github.io/lumina/learn/regex/) | Predict what union, concatenation and star match, read regexes aloud, write one that's checked on every string up to length 7, and see each regex's smallest DFA |
+| 4 | [**What finite memory can't do**](https://xiaogao0616.github.io/lumina/learn/nonregular/) | Break a DFA that tries to count aⁿbⁿ, find the state that must repeat, and pump the loop: the pumping lemma, discovered step by step |
+| 5 | [**Grammars that grow strings**](https://xiaogao0616.github.io/lumina/learn/cfg/) | Derive strings by tapping rules, see a grammar generate aⁿbⁿ and balanced parentheses, and write a grammar for even palindromes |
+
+Turing machines and decidability come later as lessons. Until then there's the TM workspace and the [deciders page](https://xiaogao0616.github.io/lumina/deciders/).
+
+The first time you open a workspace, a **three-step quick tour** shows how to add states, draw transitions and test a string. The `?` in the Components panel brings it back.
+
+<div align="center">
+<img src="docs/screenshot-learn.jpg" alt="The lesson page: From your first DFA to context-free grammars, with lessons 1 and 2 ticked as done and a Continue with lesson 3 button" width="100%">
+<br><sub>The lesson page remembers which lessons you've finished.</sub>
+<br><br>
+<img src="docs/screenshot-lesson.jpg" alt="Lesson 2, One letter, two arrows: an NFA for strings ending in ab with two states lit after typing a b" width="100%">
+<br><sub>Lesson 2: press <b>a</b> and <b>b</b> and watch the NFA's copies split and die.</sub>
+</div>
+
 ## ✨ Features
 
 <table>
@@ -52,7 +78,6 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 - Drag-and-drop **start / normal / accept** states
 - Click a state, then a target, to draw a transition; put **several characters** on one arrow
 - Custom state categories (`r₀, r₁, …`), each made as start, plain or accept states
-- A three-step quick tour on your first visit (reopen it from the `?` in the Components panel)
 - Change a placed state's kind from its hover menu: toggle **accepting**, or **make it the start state**. Its transitions stay put
 - A start state can also accept
 - Drag a state back onto the side panel to delete it; the panel turns into a big **delete zone** while you drag
@@ -138,12 +163,6 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 
 ## 🎓 Practice and proofs
 
-- **Interactive lessons** at `/learn`, linked at the top of the home page: five short lessons for someone who has never seen an automaton, following Sipser chapters 1 and 2. Each step unlocks once you've done its task, and the index marks the lessons you've finished.
-  1. **What is a DFA?** Open a two-button lock, look inside it, name the parts, predict accept or reject, spot a missing arrow, and finish your first machine.
-  2. **Machines that can guess.** Watch an NFA split into copies, find which copies survive, follow ε-arrows, and tap the matching state of its subset-construction DFA.
-  3. **Regular expressions.** Predict what union, concatenation and star match, read regexes aloud, write one that is checked on every string up to length 7, and see each regex's smallest DFA.
-  4. **What finite memory can't do.** Break a DFA that tries to count aⁿbⁿ, find the state that must repeat, and pump the loop: the pumping lemma, discovered step by step.
-  5. **Grammars that grow strings.** Derive strings by tapping rules, see a grammar generate aⁿbⁿ and balanced parentheses, and write a grammar for even palindromes.
 - **Practice mode** (the green **Practice** button in the toolbar): twelve languages to build a DFA or NFA for. *Check my answer* compares your machine with the reference exactly and names the shortest string it gets wrong.
 - **Compare or combine** two tabs: an equivalence check with shortest counterexamples, plus union, intersection and difference by product construction, and complement.
 - **DFA/NFA → regex** by state elimination, in the same syntax Regex → NFA reads.
@@ -206,7 +225,7 @@ flowchart LR
 
 ## 🚀 Try it
 
-**In the browser:** open the [live demo](https://xiaogao0616.github.io/lumina/). There's nothing to install.
+**In the browser:** open the [live demo](https://xiaogao0616.github.io/lumina/). There's nothing to install. New to the subject? Begin with [lesson 1](https://xiaogao0616.github.io/lumina/learn/dfa/).
 
 **Locally:**
 
@@ -269,7 +288,7 @@ The PDA and CFG workspaces follow the conventions in Sipser's *Introduction to t
 
 ## 🧠 Under the hood
 
-All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate from the UI:
+All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate from the UI. The lessons reuse it too: `components/lesson-kit.tsx` holds their shared diagram, answer widgets and step shell.
 
 | Module | What it does |
 | --- | --- |
@@ -291,6 +310,7 @@ All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate 
 | `deciders.ts` / `decider-examples.ts` | The chapter 4 deciders with a trace of every stage, and their example inputs |
 | `exercises.ts` / `pumping.ts` | Practice exercises and their checker; languages and splits for the pumping lemma game |
 | `share-link.ts` / `graph-tikz.ts` | Compressed share links; TikZ and LaTeX export |
+| `lessons.ts` | The lesson list and the progress saved in this browser |
 | `editor-storage.ts` | Versioned, validated local saves and tab index |
 
 ```bash
