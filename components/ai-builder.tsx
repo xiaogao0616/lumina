@@ -6,6 +6,7 @@ import type { AutomatonGraph, TabMode } from '../lib/automaton-graph'
 import {
   AI_SETTINGS_KEY,
   callModel,
+  repairPrompt,
   defaultBaseUrls,
   defaultModels,
   extractJson,
@@ -190,9 +191,15 @@ export function useAiBuilder(onResult: OpenAiResult) {
     const fail = (error: string) => setJobs(current => current.map(item => item.id === job.id ? { ...item, status: 'failed', error } : item))
     void (async () => {
       try {
-        const reply = await callModel(settings, systemPrompt(), userPrompt(request.target, request.description, request.source === 'photo'),
-          request.photo?.image ?? null, job.controller.signal)
-        const result = specToResult(extractJson(reply), request.target)
+        const prompt = userPrompt(request.target, request.description, request.source === 'photo')
+        const image = request.photo?.image ?? null
+        const attempt = (reply: string) => {
+          try { return specToResult(extractJson(reply), request.target) } catch (caught) { return { ok: false as const, message: caught instanceof SyntaxError ? `The model’s answer was not valid JSON, even after asking it to fix it (${caught.message}). Try Generate again.` : describeFailure(caught) } }
+        }
+        const reply = await callModel(settings, systemPrompt(), prompt, image, job.controller.signal)
+        let result = attempt(reply)
+        // One more round when the answer is broken JSON or fails the checks: show the model its mistake.
+        if (!result.ok) result = attempt(await callModel(settings, systemPrompt(), repairPrompt(prompt, reply, result.message), image, job.controller.signal))
         if (!result.ok) return fail(result.message)
         setJobs(current => current.filter(item => item.id !== job.id))
         onResult(result.mode, result.mode === 'cfg' ? { grammar: result.grammar, title: result.title } : { graph: result.graph, title: result.title })

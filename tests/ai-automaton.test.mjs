@@ -118,3 +118,13 @@ test('a busy AI service is retried, and other errors are not', async () => {
   assert.match(failureHint(503), /not your key/)
   assert.equal(failureHint(400), '')
 })
+
+test('small JSON slips from a model are repaired, and strings are left alone', () => {
+  const { extractJson, repairPrompt } = loadTs('ai-automaton.ts')
+  assert.deepEqual(extractJson('{"a":[1,2,],"b":"x , ]"}'), { a: [1, 2], b: 'x , ]' })
+  assert.deepEqual(extractJson('{"a":[{"x":1}\n{"y":2}],"s":"  "}'), { a: [{ x: 1 }, { y: 2 }], s: '  ' })
+  assert.deepEqual(extractJson('{"rules":["0 → x, R" "1 → 1, L"]} // done'), { rules: ['0 → x, R', '1 → 1, L'] })
+  assert.deepEqual(extractJson('```json\n{"a":1 // note\n,"b":"q\nr"}\n```'), { a: 1, b: 'q\nr' })
+  assert.throws(() => extractJson('{"a": [1, 2'))
+  assert.match(repairPrompt('Build it', '{bad', 'Unexpected token'), /could not be used: Unexpected token/)
+})
