@@ -750,3 +750,29 @@ button, input, textarea { font: inherit; }
   .cat-body, .workspace-cat .cat-tail, .workspace-cat.is-happy .cat-body, .workspace-cat.is-petted .cat-body { animation: none; }
 }
 @media (max-width: 760px) { .workspace-cat, .cat-paw { display: none; } }
+
+/* AI and Practice: a little apart from the tools menu and from each other. */
+.workspace-buttons { display: inline-flex; align-items: center; gap: 12px; margin-left: 10px; }
+
+/* Add category: pick whether the new states are start, plain or accept states. */
+.category-kind-label { color: var(--text-2); font-size: var(--fs-small); font-weight: 600; }
+.category-form { grid-template-columns: minmax(0, 1fr); }
+.category-kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.category-kinds button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; height: 32px; padding: 0 2px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--raised); color: var(--text); font-size: var(--fs-small); font-weight: 700; cursor: pointer; }
+.category-kinds button.is-on { background: var(--accent); color: #121212; box-shadow: var(--hard-sm); }
+.category-kinds .palette-icon { width: 18px; height: 18px; font-size: 11px; }
+
+/* The first-visit quick tour. */
+.tour-box { position: relative; max-width: 440px; }
+.tour-close { position: absolute; top: 10px; right: 10px; }
+.modal-box p.tour-count { margin: 0 0 12px; color: var(--muted); font: 700 11px var(--font-mono), monospace; letter-spacing: .08em; text-transform: uppercase; }
+.tour-icon { display: grid; place-items: center; width: 60px; height: 60px; margin-bottom: 12px; border: var(--bw) solid var(--line); border-radius: var(--radius-lg); background: var(--accent); color: #121212; box-shadow: var(--hard-sm); transform: rotate(-4deg); }
+.tour-box b { color: var(--text); }
+.tour-dots { display: flex; gap: 6px; margin-top: 16px; }
+.tour-dots span { width: 8px; height: 8px; border: 1.5px solid var(--line); border-radius: 50%; }
+.tour-dots span.is-on { width: 22px; border-radius: 999px; background: var(--accent); }
+.tour-actions { justify-content: space-between; }
+.tour-actions .modal-button { display: inline-flex; align-items: center; gap: 6px; }
+.modal-box p.tour-learn { margin-top: 14px; font-size: var(--fs-small); }
+.tour-learn a { color: var(--link); font-weight: 700; }
+@media (max-width: 600px) { .workspace-buttons { gap: 8px; margin-left: 0; } }

@@ -51,7 +51,8 @@ Five workspaces share one window as tabs, so a grammar can sit right next to the
 ### 🎨 Build
 - Drag-and-drop **start / normal / accept** states
 - Click a state, then a target, to draw a transition; put **several characters** on one arrow
-- Custom state categories (`r₀, r₁, …`)
+- Custom state categories (`r₀, r₁, …`), each made as start, plain or accept states
+- A three-step quick tour on your first visit (reopen it from the `?` in the Components panel)
 - Change a placed state's kind from its hover menu: toggle **accepting**, or **make it the start state**. Its transitions stay put
 - A start state can also accept
 - Drag a state back onto the side panel to delete it; the panel turns into a big **delete zone** while you drag

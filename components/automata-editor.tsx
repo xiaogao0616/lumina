@@ -83,6 +83,7 @@ import { GrammarLab } from './grammar-editor'
 import { ThemeToggle } from './theme-toggle'
 import { WorkspaceCat } from './workspace-cat'
 import { Dropdown, MenuItem, WorkspaceButtons, type WorkspaceActions } from './menus'
+import { TOUR_SEEN_KEY, WorkspaceTour } from './workspace-tour'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 import { useAiBuilder, type OpenAiResult } from './ai-builder'
 import { CompareDialog, ExerciseBanner, PracticeDialog, RegexDialog, ShareDialog, downloadFile, shareUrl, type PeerTab } from './lab-tools'
@@ -639,6 +640,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
   const [addingCategory, setAddingCategory] = useState(false)
   const [categoryName, setCategoryName] = useState('')
   const [categoryError, setCategoryError] = useState('')
+  const [categoryKind, setCategoryKind] = useState<StateKind>('state')
   const nextIndices = useRef(new Map([['start', 1], ['q', isTm ? 1 : isDfa || isPda ? 2 : 4], ['accept', 1]]))
   const addCategory = (event: React.FormEvent) => {
     event.preventDefault()
@@ -652,8 +654,8 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
     }
     const id = `category-${crypto.randomUUID()}`
     nextIndices.current.set(id, 0)
-    setCategories(current => [...current, { id, name, kind: 'state' }])
-    setCategoryName(''); setCategoryError(''); setAddingCategory(false)
+    setCategories(current => [...current, { id, name, kind: categoryKind }])
+    setCategoryName(''); setCategoryError(''); setCategoryKind('state'); setAddingCategory(false)
   }
   const [nodes, setNodes, onNodesChange] = useNodesState<AutomataNode>(isDfa ? dfaInitialNodes : isPda ? pdaInitialNodes : isTm ? tmInitial.nodes : nfaInitialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(isDfa ? dfaInitialEdges : isPda ? pdaInitialEdges : isTm ? tmInitial.edges : nfaInitialEdges)
@@ -1461,10 +1463,11 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
               <li>Drag a component onto the canvas to add a state.</li>
               <li>Click a state, then a target (or the same state for a loop) to draw a transition. Click an arrow to pick its {hasRules ? 'rules' : 'characters'}.</li>
               <li>Drag a state back onto this panel to delete it and its transitions.</li>
-              <li>Click <b>State</b> or <b>Add category</b> to create a custom state category.</li>
+              <li>Click <b>Add category</b> to make states with your own name, as start, plain or accept states.</li>
               <li>Select a start state to toggle whether it also accepts.</li>
               <li>Ctrl+Z / Ctrl+Shift+Z undo and redo. Esc cancels a connection.</li>
             </ul>
+            <button type="button" className="text-button" onClick={actions.openTour}>Show the quick tour again</button>
           </div>}
         </Dropdown>
       </div>
@@ -1472,8 +1475,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
       <div className="sidebar-body"><div className="palette-list">
       {categories.map(category => <PaletteItem key={category.id} category={category}
         title={category.id === 'start' ? 'Start state' : category.id === 'accept' ? 'Accept state' : category.id === 'q' ? 'State' : category.name}
-        subtitle={category.id === 'q' ? 'Drag q₀ · Click to add a category' : `${indexedLabel(category.name, 0)}, ${indexedLabel(category.name, 1)}, …`}
-        onClick={category.id === 'q' ? () => { setAddingCategory(true); setCategoryError('') } : undefined}
+        subtitle={`${indexedLabel(category.name, 0)}, ${indexedLabel(category.name, 1)}, …`}
         onDragStart={onDragStart} />)}
       {!addingCategory && <button type="button" className="add-category-button" onClick={() => { setAddingCategory(true); setCategoryError('') }}>+ Add category</button>}
       {addingCategory && <form className="category-form" onSubmit={addCategory}>
@@ -1483,7 +1485,15 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
           onChange={event => { setCategoryName(event.target.value); setCategoryError('') }}
           onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setAddingCategory(false) } }} />
         {categoryError && <p id="category-error" role="alert">{categoryError}</p>}
-        <div><button type="submit" className="primary-button">Add</button><button type="button" className="secondary-button" onClick={() => { setAddingCategory(false); setCategoryName(''); setCategoryError('') }}>Cancel</button></div>
+        <span className="category-kind-label" id="category-kind-label">Kind</span>
+        <div className="category-kinds" role="radiogroup" aria-labelledby="category-kind-label">
+          {(['start', 'state', 'accept'] as const).map(kind => <button key={kind} type="button" role="radio" aria-checked={categoryKind === kind}
+            className={categoryKind === kind ? 'is-on' : ''} onClick={() => setCategoryKind(kind)}>
+            <span className={`palette-icon palette-icon-${kind}`} aria-hidden="true">{kind === 'start' ? '→' : kind === 'accept' ? '◎' : '○'}</span>
+            {kind === 'start' ? 'Start' : kind === 'accept' ? 'Accept' : 'State'}
+          </button>)}
+        </div>
+        <div><button type="submit" className="primary-button">Add</button><button type="button" className="secondary-button" onClick={() => { setAddingCategory(false); setCategoryName(''); setCategoryError(''); setCategoryKind('state') }}>Cancel</button></div>
       </form>}
       </div></div></aside>
       <section className="canvas-area"><div className="canvas-toolbar">
@@ -1738,7 +1748,17 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
   }, [])
   const ai = useAiBuilder(openAiResult)
   const openAi = ai.open
-  const actions = useMemo<WorkspaceActions>(() => ({ openAi, openPractice: () => setPracticeOpen(true) }), [openAi])
+  // The quick tour opens by itself once, on the first visit that isn't a share link or practice link.
+  const [tourOpen, setTourOpen] = useState(false)
+  useEffect(() => {
+    if (!ready || bootstrapMode === 'cfg' || location.hash || location.search) return
+    try { if (!localStorage.getItem(TOUR_SEEN_KEY)) setTourOpen(true) } catch { /* no storage: skip the tour rather than show it every time */ }
+  }, [ready, bootstrapMode])
+  const closeTour = useCallback(() => {
+    setTourOpen(false)
+    try { localStorage.setItem(TOUR_SEEN_KEY, '1') } catch { /* it may show again next visit */ }
+  }, [])
+  const actions = useMemo<WorkspaceActions>(() => ({ openAi, openPractice: () => setPracticeOpen(true), openTour: () => setTourOpen(true) }), [openAi])
   // State updaters must stay pure (React may invoke them more than once, e.g. under Strict Mode),
   // so side effects — localStorage, opening the rename dialog — run once here, outside setIndex.
   const closeTab = (id: string) => {
@@ -1786,6 +1806,7 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
         exercise={exerciseById(activeTab.exercise)} onSolved={markSolved} /></ReactFlowProvider>}
     {dialog && <Dialog state={dialog} onClose={() => setDialog(null)} />}
     {ai.dialog}
+    {tourOpen && <WorkspaceTour onClose={closeTour} />}
     {practiceOpen && <PracticeDialog solved={solved} onStart={startExercise} onClose={() => setPracticeOpen(false)} />}
   </div>
 }
