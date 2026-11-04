@@ -204,7 +204,7 @@ export function ShareDialog({ url, onClose }: { url: string | null; onClose: () 
 
 const levelName = { 1: 'Warm-up', 2: 'Practice', 3: 'Challenge' }
 
-export function PracticeDialog({ solved, onStart, onClose }: { solved: string[]; onStart: (exercise: Exercise) => void; onClose: () => void }) {
+export function PracticeDialog({ solved, open = [], onStart, onClose }: { solved: string[]; open?: string[]; onStart: (exercise: Exercise) => void; onClose: () => void }) {
   const [mode, setMode] = useState<'dfa' | 'nfa'>('dfa')
   const list = EXERCISES.filter(exercise => exercise.mode === mode)
   const done = EXERCISES.filter(exercise => solved.includes(exercise.id)).length
@@ -220,7 +220,8 @@ export function PracticeDialog({ solved, onStart, onClose }: { solved: string[];
         <span className="practice-level" title={levelName[exercise.level]} aria-label={levelName[exercise.level]}>{[1, 2, 3].map(dot => <i key={dot} className={dot <= exercise.level ? 'is-on' : ''} />)}</span>
         <span className="practice-copy"><b>{exercise.title}</b><small>{exercise.prompt}</small></span>
         {solved.includes(exercise.id) && <span className="practice-solved" title="Solved"><Check size={14} aria-hidden="true" /></span>}
-        <button type="button" className="secondary-button" onClick={() => { onStart(exercise); onClose() }}>Start <ArrowRight size={13} aria-hidden="true" /></button>
+        <button type="button" className="secondary-button" onClick={() => { onStart(exercise); onClose() }}
+          title={open.includes(exercise.id) ? 'Go back to the tab where you are building this' : 'Open a new tab for this exercise'}>{open.includes(exercise.id) ? 'Open' : 'Start'} <ArrowRight size={13} aria-hidden="true" /></button>
       </li>)}
     </ul>
   </ToolModal>

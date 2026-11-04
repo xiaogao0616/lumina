@@ -337,7 +337,7 @@ function TransitionEditor({ edgeId, value, heading }: { edgeId: string; value: s
         setDraft(''); setError('')
       }}>
         <p className="symbol-selection-hint">{actions.mode === 'dfa'
-          ? 'Each character may leave this state on only one arrow. Missing characters reject during a test.'
+          ? 'Each character may leave this state on only one arrow, and every character needs one before the DFA can be tested.'
           : 'Click to highlight the inputs allowed on this transition. Click again to deselect.'}</p>
         <label htmlFor={`${listId}-new`}>Add a character</label>
         <div><input id={`${listId}-new`} value={draft} placeholder="e.g. a"
@@ -496,6 +496,9 @@ function RoutedEdge({ id, source, target, style, data, label, selected }: EdgePr
 const nodeTypes = { state: StateNode, start: StateNode, accept: StateNode }
 const edgeTypes = { routed: RoutedEdge }
 
+/** Below this width the components panel floats over the canvas instead of sitting beside it. Matches globals.css. */
+const NARROW_QUERY = '(max-width: 760px)'
+
 function PaletteItem({ category, title, subtitle, onDragStart, onClick }: {
   category: StateCategory; title: string; subtitle: string;
   onDragStart: (event: React.DragEvent, categoryId: string) => void; onClick?: () => void
@@ -631,6 +634,8 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
   const hasRules = isPda || isTm
   const [testPanelOpen, setTestPanelOpen] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  // On a phone the canvas needs the width, so the components panel starts closed there.
+  useEffect(() => { if (window.matchMedia(NARROW_QUERY).matches) setSidebarOpen(false) }, [])
   const [alphabetOpen, setAlphabetOpen] = useState(false)
   const [testString, setTestString] = useState('')
   const [convertError, setConvertError] = useState('')
@@ -934,12 +939,10 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
     event.dataTransfer.setData('application/automata-node', categoryId)
     event.dataTransfer.effectAllowed = 'copy'
   }, [])
-  const onDrop = useCallback((event: React.DragEvent) => {
-    event.preventDefault()
-    const categoryId = event.dataTransfer.getData('application/automata-node')
+  const addStateAt = useCallback((categoryId: string, point: { x: number; y: number }) => {
     const category = categories.find(item => item.id === categoryId)
     if (!category) return
-    const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+    const position = screenToFlowPosition(point)
     let index = nextIndices.current.get(category.id) ?? 0
     while (nodes.some(node => node.data.label === indexedLabel(category.name, index))) index++
     nextIndices.current.set(category.id, index + 1)
@@ -949,6 +952,32 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
       data: { label: indexedLabel(category.name, index), kind: category.kind, color } }
     setNodes(current => current.concat(newNode))
   }, [categories, nodes, screenToFlowPosition, setNodes])
+  const onDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault()
+    addStateAt(event.dataTransfer.getData('application/automata-node'), { x: event.clientX, y: event.clientY })
+  }, [addStateAt])
+  // Tapping a component adds it near the middle of the canvas: phones can't drag, and it helps keyboard users too.
+  const onPaletteTap = useCallback((categoryId: string) => {
+    const bounds = reactFlowWrapper.current?.getBoundingClientRect()
+    if (!bounds) return
+    // Walk outward from the middle (in canvas units, so zoom doesn't matter) until a spot is clear
+    // of the states already there and still on screen.
+    const centers = nodes.map(node => ({ x: node.position.x + 37, y: node.position.y + 37 }))
+    const middle = screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 })
+    const gap = 150
+    let spot = flowToScreenPosition(middle)
+    search: for (let ring = 0; ring < 8; ring++) {
+      for (let dy = -ring; dy <= ring; dy++) for (let dx = -ring; dx <= ring; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue
+        const candidate = { x: middle.x + dx * gap, y: middle.y + dy * gap * 0.8 }
+        const onScreen = flowToScreenPosition(candidate)
+        const visible = onScreen.x > bounds.left + 40 && onScreen.x < bounds.right - 40 && onScreen.y > bounds.top + 40 && onScreen.y < bounds.bottom - 40
+        if (visible && centers.every(center => Math.hypot(center.x - candidate.x, center.y - candidate.y) > gap * 0.75)) { spot = onScreen; break search }
+      }
+    }
+    addStateAt(categoryId, spot)
+    if (window.matchMedia(NARROW_QUERY).matches) setSidebarOpen(false)
+  }, [addStateAt, nodes, flowToScreenPosition, screenToFlowPosition])
 
   const cancelConnection = useCallback(() => setConnectingId(null), [])
   const exitTransitionFocus = useCallback((edgeId?: string) => {
@@ -1261,13 +1290,32 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
   }), [graph])
   const [validatedSignature, setValidatedSignature] = useState<string | null>(null)
   const testPassed = isDfa && validatedSignature === graphSignature
-  // No popup either way — the Deterministic / Missing / Conflicts / Test stats above the canvas
-  // already say whether this passes, so Run / Run test just reads them instead of announcing it.
+  // A pass is silent (the Validated pill turns Yes). A fail says what is wrong in a dialog, since
+  // otherwise Validate and Run would look like they did nothing.
   const confirmDfaReady = useCallback(() => {
-    if (!isStandardDfa) return false
+    if (!isStandardDfa) {
+      const listed = (items: string[]) => items.length > 4 ? `${items.slice(0, 4).join('; ')}; and ${items.length - 4} more` : items.join('; ')
+      const startProblem = nodeCounts.start === 0 ? 'There is no start state yet.' : nodeCounts.start > 1 ? `There are ${nodeCounts.start} start states; keep exactly one.` : ''
+      const conflictLines = conflicts.map(item => item.symbol === 'ε' ? `${item.sourceLabel} has an ε-arrow` : `${item.sourceLabel} has ${item.targets.length} arrows for ${item.symbol}`)
+      const missingLines = [...new Set(missing.map(item => item.source))].map(source => {
+        const items = missing.filter(item => item.source === source)
+        return `${items[0].sourceLabel} on ${items.map(item => item.symbol).join(', ')}`
+      })
+      const parts = [
+        startProblem,
+        conflictLines.length ? `A DFA can’t branch: ${listed(conflictLines)}.` : '',
+        missingLines.length ? `Missing arrows: ${listed(missingLines)}. A DFA needs exactly one arrow for every state and letter.` : '',
+      ].filter(Boolean)
+      const onlyMissing = !startProblem && !conflictLines.length && missingLines.length > 0
+      setDialog(onlyMissing
+        ? { kind: 'confirm', title: 'Not a complete DFA yet', confirmLabel: 'Complete with sink', onConfirm: completeSink,
+          message: `${parts.join(' ')} Draw the missing arrows yourself, or let Complete with sink send them all to one new trap state.` }
+        : { kind: 'alert', tone: 'error', title: 'Not a DFA yet', message: `${parts.join(' ')} Fix these, then press Validate DFA or run the string again.` })
+      return false
+    }
     if (validatedSignature !== graphSignature) setValidatedSignature(graphSignature)
     return true
-  }, [isStandardDfa, validatedSignature, graphSignature])
+  }, [isStandardDfa, validatedSignature, graphSignature, nodeCounts, conflicts, missing, completeSink])
   const onRunClick = useCallback(() => {
     cancelConnection()
     if (isDfa && !confirmDfaReady()) return
@@ -1349,7 +1397,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
   const diagnosticTone = isDfa ? (isStandardDfa ? 'is-good' : 'is-bad') : isTm && tmClashes.length ? 'is-bad' : ''
   const saveFailed = storageBlocked || saveStatus.startsWith('Could not')
   const testHint = isDfa
-    ? (isStandardDfa ? 'Type a string, then press Enter or Run animated.' : 'Tests run once this is a complete DFA — open the diagnostics above to see what is missing.')
+    ? (isStandardDfa ? 'Type a string, then press Enter or Run animated.' : 'Tests run once this is a complete DFA. Press Run or Validate DFA to see what is missing.')
     : isPda ? 'Press Enter or Run animated to watch the stack move by move. Leave blank to test ε.'
     : isTm ? 'Press Enter or Run animated to watch the head move over the tape. Leave blank to test ε.'
     : 'Press Enter or Run animated. Leave blank to test ε.'
@@ -1455,12 +1503,12 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
           trigger={<CircleQuestionMark size={16} aria-hidden="true" />}>
           {() => <div className="help-popover">
             <h3>{isDfa ? 'Deterministic FA' : isPda ? 'Pushdown automaton' : isTm ? 'Turing machine' : 'Nondeterministic FA'}</h3>
-            <p>{isDfa ? 'One successor per (state, symbol). No ε. Missing arrows reject the input; optionally complete the graph with a sink.'
+            <p>{isDfa ? 'Exactly one arrow per state and letter, and no ε, as in Sipser. Validate DFA and tests wait until every arrow is there; DFA tools → Complete with sink adds the missing ones as a trap state.'
               : isTm ? 'A single-tape deterministic Turing machine, as in Sipser. Each rule reads the symbol under the head, writes one (_ is the blank ⊔) and moves L or R. The tape is infinite to the right; moving left from the first cell stays put. Entering an accepting state accepts, and a missing rule rejects. A run that repeats a configuration loops forever.'
               : isPda ? 'An NFA with a stack. Each rule reads a character, pops the top of the stack and pushes a string; any part can be ε. The stack starts empty, so push a bottom marker like $ first. A string is accepted when all of it is read and some run is in an accepting state.'
               : 'ε-moves and multiple successors are allowed. Convert to an equivalent DFA when you want the deterministic machine.'}</p>
             <ul>
-              <li>Drag a component onto the canvas to add a state.</li>
+              <li>Drag a component onto the canvas to add a state, or tap it to drop one in the middle.</li>
               <li>Click a state, then a target (or the same state for a loop) to draw a transition. Click an arrow to pick its {hasRules ? 'rules' : 'characters'}.</li>
               <li>Drag a state back onto this panel to delete it and its transitions.</li>
               <li>Click <b>Add category</b> to make states with your own name, as start, plain or accept states.</li>
@@ -1476,7 +1524,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
       {categories.map(category => <PaletteItem key={category.id} category={category}
         title={category.id === 'start' ? 'Start state' : category.id === 'accept' ? 'Accept state' : category.id === 'q' ? 'State' : category.name}
         subtitle={`${indexedLabel(category.name, 0)}, ${indexedLabel(category.name, 1)}, …`}
-        onDragStart={onDragStart} />)}
+        onDragStart={onDragStart} onClick={() => onPaletteTap(category.id)} />)}
       {!addingCategory && <button type="button" className="add-category-button" onClick={() => { setAddingCategory(true); setCategoryError('') }}>+ Add category</button>}
       {addingCategory && <form className="category-form" onSubmit={addCategory}>
         <label htmlFor="category-name">Category name</label>
@@ -1529,7 +1577,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
                 {missing.length ? <ul className="diagnostics-list">{[...missingByState].map(([id, group]) => <li key={id}>
                   <b>{group.label}</b><span className="diagnostics-symbols">{group.symbols.map(symbol => <code key={symbol}>{symbol}</code>)}</span>
                 </li>)}</ul> : <p className="diagnostics-empty">None</p>}
-                {missing.length > 0 && <p className="diagnostics-tip">Missing characters reject during a test. DFA tools → Complete with sink fills them all.</p>}
+                {missing.length > 0 && <p className="diagnostics-tip">Tests wait until every arrow is there. DFA tools → Complete with sink fills them all.</p>}
               </section>}
               {isTm ? <section>
                 <h3>Conflicts <span className="count">{tmClashes.length}</span></h3>
@@ -1717,6 +1765,9 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
     return next
   }), [])
   const startExercise = (exercise: Exercise) => {
+    // Coming back to an exercise returns to the tab you were building it in, instead of a blank one.
+    const existing = index?.tabs.find(tab => tab.exercise === exercise.id)
+    if (existing) { switchTab(existing.id); return }
     const starter: AutomatonGraph = {
       states: [{ id: 'q0', label: 'start₀', kind: 'start', position: { x: 290, y: 168 }, color: SOURCE_COLORS[0] }],
       transitions: [],
@@ -1807,7 +1858,7 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
     {dialog && <Dialog state={dialog} onClose={() => setDialog(null)} />}
     {ai.dialog}
     {tourOpen && <WorkspaceTour onClose={closeTour} />}
-    {practiceOpen && <PracticeDialog solved={solved} onStart={startExercise} onClose={() => setPracticeOpen(false)} />}
+    {practiceOpen && <PracticeDialog solved={solved} open={index.tabs.flatMap(tab => tab.exercise ? [tab.exercise] : [])} onStart={startExercise} onClose={() => setPracticeOpen(false)} />}
   </div>
 }
 

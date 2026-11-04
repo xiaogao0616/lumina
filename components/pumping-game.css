@@ -22,6 +22,7 @@
 .pump-language { display: grid; gap: 2px; padding: 10px 12px; border: var(--bw) solid var(--line); border-radius: var(--radius-md); background: var(--raised); color: var(--text); text-align: left; cursor: pointer; box-shadow: var(--hard-sm); transition: transform .1s, box-shadow .1s; }
 .pump-language b { font: 700 15px var(--font-sans), sans-serif; }
 .pump-language small { color: var(--muted); font-size: var(--fs-small); line-height: 1.4; }
+.pump-won { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; padding: 0 6px; border: 1.5px solid var(--line); border-radius: var(--radius-pill); background: var(--success-fill, var(--success)); color: #121212; font: 700 11px var(--font-sans), sans-serif; vertical-align: 2px; }
 .pump-language:hover { transform: translate(-1px, -1px); box-shadow: var(--hard); }
 .pump-language[aria-checked="true"] { background: var(--accent); color: #121212; box-shadow: var(--hard); }
 .pump-language[aria-checked="true"] small { color: #3d3a33; }

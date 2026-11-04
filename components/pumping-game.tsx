@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, CircleCheck, CircleX, Dices, Lightbulb, Swords, Wand2, Zap } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import {
@@ -36,6 +36,14 @@ function SplitLegend({ split }: { split: { x: string; y: string; z: string } }) 
   </dl>
 }
 
+const PUMPING_WON_KEY = 'automata-lab.pumping-won.v1'
+function readWon(): string[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(PUMPING_WON_KEY) ?? '[]')
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  } catch { return [] }
+}
+
 export function PumpingGame() {
   const [languageId, setLanguageId] = useState(PUMPING_LANGUAGES[0].id)
   const language = PUMPING_LANGUAGES.find(item => item.id === languageId)!
@@ -64,6 +72,15 @@ export function PumpingGame() {
   const result = round && chosenI !== null ? pumped(round.split, chosenI) : null
   const won = result !== null && !language.contains(result)
   const everySplitLoses = splits.length > 0 && splits.every(split => split.breaking.length > 0)
+  // Languages this browser has beaten the opponent on, so they show a check next time.
+  const [wonIds, setWonIds] = useState<string[]>([])
+  useEffect(() => { setWonIds(readWon()) }, [])
+  useEffect(() => {
+    if (!won || wonIds.includes(language.id)) return
+    const next = [...wonIds, language.id]
+    setWonIds(next)
+    try { localStorage.setItem(PUMPING_WON_KEY, JSON.stringify(next)) } catch { /* the check just won't persist */ }
+  }, [won, wonIds, language.id])
 
   return <div className="pump-page">
     <nav className="lab-home-nav" aria-label="Site">
@@ -90,7 +107,7 @@ export function PumpingGame() {
         <div className="pump-languages" role="radiogroup" aria-label="Language">
           {PUMPING_LANGUAGES.map(item => <button key={item.id} type="button" role="radio" aria-checked={item.id === languageId}
             className={`pump-language ${item.regular ? 'is-regular' : ''}`} onClick={() => reset(item)}>
-            <b>{item.name}</b><small>{item.description}</small>
+            <b>{item.name}{wonIds.includes(item.id) && <span className="pump-won" title="You have won a round on this language"><CircleCheck size={13} aria-hidden="true" /> won</span>}</b><small>{item.description}</small>
           </button>)}
         </div>
       </section>

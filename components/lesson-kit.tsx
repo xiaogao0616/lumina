@@ -7,7 +7,7 @@ import { ThemeToggle } from './theme-toggle'
 import { graphToSvg, type StateHighlight } from '../lib/graph-svg'
 import { SOURCE_COLORS, isAcceptingState, type AutomatonGraph, type StateKind } from '../lib/automaton-graph'
 import { regexToNfa } from '../lib/regex-to-nfa'
-import { LESSONS, LESSONS_DONE_KEY, lessonById, readLessonsDone } from '../lib/lessons'
+import { LESSONS, LESSONS_DONE_KEY, LESSON_PROGRESS_KEY, lessonById, readLessonProgress, readLessonsDone, resumeLesson } from '../lib/lessons'
 import './lesson.css'
 
 /**
@@ -204,6 +204,24 @@ export function LessonShell({ id, steps }: { id: string; steps: LessonStep[] }) 
   const next = LESSONS.find(item => item.number === lesson.number + 1)
   const [index, setIndex] = useState(0)
   const [solved, setSolved] = useState<boolean[]>(() => steps.map(step => !!step.free))
+  const [loaded, setLoaded] = useState(false)
+  // Pick up where this browser left off. Runs after the first render so the static HTML matches.
+  useEffect(() => {
+    try {
+      const finished = readLessonsDone(localStorage.getItem(LESSONS_DONE_KEY)).includes(id)
+      const resumed = resumeLesson(readLessonProgress(localStorage.getItem(LESSON_PROGRESS_KEY))[id], steps.map(step => !!step.free), finished)
+      setIndex(resumed.step)
+      setSolved(resumed.solved)
+    } catch { /* No storage: start at step 1. */ }
+    setLoaded(true)
+  }, [id, steps])
+  useEffect(() => {
+    if (!loaded) return
+    try {
+      const all = readLessonProgress(localStorage.getItem(LESSON_PROGRESS_KEY))
+      localStorage.setItem(LESSON_PROGRESS_KEY, JSON.stringify({ ...all, [id]: { step: index, solved } }))
+    } catch { /* Progress is a convenience; the lesson works without storage. */ }
+  }, [loaded, id, index, solved])
   const solveCurrent = useCallback(() => setSolved(current => current[index] ? current : current.map((value, at) => at === index ? true : value)), [index])
   const last = index === steps.length - 1
   useEffect(() => { if (last) markLessonDone(id) }, [last, id])

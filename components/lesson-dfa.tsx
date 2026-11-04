@@ -102,7 +102,7 @@ function StepDeterministic({ onSolved, solved }: StepProps) {
     <Diagram graph={BROKEN} highlight={highlight} onPick={id => { setPicked(id); if (id === 'o') onSolved() }} label="The lock with one arrow missing. Tap a state." />
     <p className="lesson-task">Tap the state that has no arrow for <b>a</b>.</p>
     {picked && (picked === 'o' || solved
-      ? <Feedback ok>Yes, “open” has no <code>a</code> arrow. It should go back to “saw a”, since that <code>a</code> could be the start of a new “ab”. In this app a missing arrow means the input is rejected on the spot.</Feedback>
+      ? <Feedback ok>Yes, “open” has no <code>a</code> arrow. It should go back to “saw a”, since that <code>a</code> could be the start of a new “ab”. Without it this copy isn’t a DFA at all. In these lessons a machine that gets stuck just rejects, but the DFA workspace asks for every arrow (or a trap state) before it will run a test.</Feedback>
       : <Feedback ok={false}>“{labelOf(BROKEN, picked)}” has an arrow labelled a. Check each state for an <code>a</code> going out.</Feedback>)}
   </>
 }
