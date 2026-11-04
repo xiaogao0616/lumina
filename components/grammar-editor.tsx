@@ -332,6 +332,7 @@ export function GrammarLab({ saveKey, tabTitle, onConvert, actions }: { saveKey:
                 <li>The first rule&apos;s left side is the start symbol. Another line for the same letter adds more alternatives.</li>
                 <li>Lines starting with # or // are comments.</li>
               </ul>
+              <button type="button" className="text-button" onClick={actions.openTour}>Show the tip again</button>
             </div>}
           </Dropdown>
         </div>

@@ -83,7 +83,7 @@ import { GrammarLab } from './grammar-editor'
 import { ThemeToggle } from './theme-toggle'
 import { WorkspaceCat } from './workspace-cat'
 import { Dropdown, MenuItem, WorkspaceButtons, type WorkspaceActions } from './menus'
-import { TOUR_SEEN_KEY, WorkspaceTour } from './workspace-tour'
+import { CFG_TOUR_SEEN_KEY, TOUR_SEEN_KEY, WorkspaceTour } from './workspace-tour'
 import { ExampleStrings, nextExampleBatch, type ExampleBatch } from './example-strings'
 import { useAiBuilder, type OpenAiResult } from './ai-builder'
 import { CompareDialog, ExerciseBanner, PracticeDialog, RegexDialog, ShareDialog, downloadFile, shareUrl, type PeerTab } from './lab-tools'
@@ -1814,16 +1814,20 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
   }, [])
   const ai = useAiBuilder(openAiResult)
   const openAi = ai.open
-  // The quick tour opens by itself once, on the first visit that isn't a share link or practice link.
+  // The quick tour opens by itself once: the first time any machine tab (DFA, NFA, PDA, TM) is shown,
+  // and separately the first time a grammar tab is shown. Share and practice links skip it.
   const [tourOpen, setTourOpen] = useState(false)
+  const activeMode = index ? (index.tabs.find(tab => tab.id === index.activeId) ?? index.tabs[0]).mode : null
+  const tourKind = activeMode === 'cfg' ? 'cfg' : 'machine'
+  const tourKey = tourKind === 'cfg' ? CFG_TOUR_SEEN_KEY : TOUR_SEEN_KEY
   useEffect(() => {
-    if (!ready || bootstrapMode === 'cfg' || location.hash || location.search) return
-    try { if (!localStorage.getItem(TOUR_SEEN_KEY)) setTourOpen(true) } catch { /* no storage: skip the tour rather than show it every time */ }
-  }, [ready, bootstrapMode])
+    if (!activeMode || location.hash || location.search) return
+    try { if (!localStorage.getItem(tourKey)) setTourOpen(true) } catch { /* no storage: skip the tour rather than show it every time */ }
+  }, [activeMode, tourKey])
   const closeTour = useCallback(() => {
     setTourOpen(false)
-    try { localStorage.setItem(TOUR_SEEN_KEY, '1') } catch { /* it may show again next visit */ }
-  }, [])
+    try { localStorage.setItem(tourKey, '1') } catch { /* it may show again next visit */ }
+  }, [tourKey])
   const actions = useMemo<WorkspaceActions>(() => ({ openAi, openPractice: () => setPracticeOpen(true), openTour: () => setTourOpen(true) }), [openAi])
   // State updaters must stay pure (React may invoke them more than once, e.g. under Strict Mode),
   // so side effects — localStorage, opening the rename dialog — run once here, outside setIndex.
@@ -1872,7 +1876,7 @@ function AutomataWorkspace({ bootstrapMode }: { bootstrapMode: TabMode }) {
         exercise={exerciseById(activeTab.exercise)} onSolved={markSolved} /></ReactFlowProvider>}
     {dialog && <Dialog state={dialog} onClose={() => setDialog(null)} />}
     {ai.dialog}
-    {tourOpen && <WorkspaceTour onClose={closeTour} />}
+    {tourOpen && <WorkspaceTour key={tourKind} kind={tourKind} onClose={closeTour} />}
     {practiceOpen && <PracticeDialog solved={solved} open={index.tabs.flatMap(tab => tab.exercise ? [tab.exercise] : [])} onStart={startExercise} onClose={() => setPracticeOpen(false)} />}
   </div>
 }
