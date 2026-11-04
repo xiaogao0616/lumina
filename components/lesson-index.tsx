@@ -4,15 +4,25 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, CircleCheck, Clock, Zap } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
-import { LESSONS, LESSONS_DONE_KEY, readLessonsDone } from '../lib/lessons'
+import { LESSONS, LESSONS_DONE_KEY, LESSON_PROGRESS_KEY, readLessonProgress, readLessonsDone, type LessonProgress } from '../lib/lessons'
 import './lesson.css'
 
 /** /learn: every lesson in order, with a check on the ones this browser has finished. */
 export function LessonIndex() {
   const [done, setDone] = useState<string[]>([])
+  const [progress, setProgress] = useState<Record<string, LessonProgress>>({})
   useEffect(() => {
-    try { setDone(readLessonsDone(localStorage.getItem(LESSONS_DONE_KEY))) } catch { /* No storage: nothing is marked. */ }
+    try {
+      setDone(readLessonsDone(localStorage.getItem(LESSONS_DONE_KEY)))
+      setProgress(readLessonProgress(localStorage.getItem(LESSON_PROGRESS_KEY)))
+    } catch { /* No storage: nothing is marked. */ }
   }, [])
+  // An unfinished lesson someone has moved past step 1 in, as "step 3 of 7".
+  const partway = (id: string) => {
+    const saved = progress[id]
+    const next = saved ? saved.solved.findIndex(value => !value) : -1
+    return !done.includes(id) && next > 0 ? `step ${next + 1} of ${saved.solved.length}` : null
+  }
   const next = LESSONS.find(lesson => !done.includes(lesson.id)) ?? LESSONS[0]
   return <div className="lesson-page">
     <nav className="lab-home-nav" aria-label="Site">
@@ -26,7 +36,7 @@ export function LessonIndex() {
         <h1 className="learn-title">From your first DFA to context-free grammars</h1>
         <p className="learn-lead">Five short lessons that follow the first two chapters of Sipser. Every step asks you to try something, so you learn by doing, not by reading. Each one builds on the last.</p>
         <Link className="primary-button learn-continue" href={`/learn/${next.id}`}>
-          {done.length === 0 ? 'Start lesson 1' : done.length === LESSONS.length ? 'Review lesson 1' : `Continue with lesson ${next.number}`} <ArrowRight size={14} aria-hidden="true" />
+          {done.length === LESSONS.length ? 'Review lesson 1' : partway(next.id) ? `Continue lesson ${next.number}, ${partway(next.id)}` : done.length === 0 ? 'Start lesson 1' : `Continue with lesson ${next.number}`} <ArrowRight size={14} aria-hidden="true" />
         </Link>
       </header>
       <ol className="learn-list">
@@ -38,7 +48,7 @@ export function LessonIndex() {
               <span className="learn-copy">
                 <b>{lesson.title}</b>
                 <span>{lesson.blurb}</span>
-                <small><Clock size={12} aria-hidden="true" /> about {lesson.minutes} min{finished && <> · <CircleCheck size={12} aria-hidden="true" /> done</>}</small>
+                <small><Clock size={12} aria-hidden="true" /> about {lesson.minutes} min{finished ? <> · <CircleCheck size={12} aria-hidden="true" /> done, open to review any step</> : partway(lesson.id) && <> · {partway(lesson.id)}</>}</small>
               </span>
               <ArrowRight size={18} aria-hidden="true" />
             </Link>

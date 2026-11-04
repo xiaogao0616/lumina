@@ -9,7 +9,7 @@ export const TOUR_SEEN_KEY = 'automata-lab.tour-seen.v1'
 const STEPS = [
   {
     icon: SquareDashedMousePointer, title: 'Add states',
-    body: <>Drag <b>Start state</b>, <b>State</b> or <b>Accept state</b> from the panel on the left onto the canvas. Hover a state to rename it, delete it, or switch it between start, plain and accepting.</>,
+    body: <>Drag <b>Start state</b>, <b>State</b> or <b>Accept state</b> from the panel on the left onto the canvas, or tap one to drop it in the middle. Hover a state to rename it, delete it, or switch it between start, plain and accepting.</>,
   },
   {
     icon: MousePointerClick, title: 'Draw transitions',

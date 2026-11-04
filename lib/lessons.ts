@@ -27,3 +27,37 @@ export function readLessonsDone(raw: string | null): string[] {
     return []
   }
 }
+
+/** How far someone got inside each lesson: the step they were on and which steps they solved. */
+export const LESSON_PROGRESS_KEY = 'automata-lab.lesson-progress.v1'
+export type LessonProgress = { step: number; solved: boolean[] }
+
+export function readLessonProgress(raw: string | null): Record<string, LessonProgress> {
+  if (!raw) return {}
+  try {
+    const value: unknown = JSON.parse(raw)
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+    const result: Record<string, LessonProgress> = {}
+    for (const [id, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (!lessonById(id) || !entry || typeof entry !== 'object') continue
+      const { step, solved } = entry as { step?: unknown; solved?: unknown }
+      if (typeof step !== 'number' || !Number.isInteger(step) || step < 0 || !Array.isArray(solved)) continue
+      result[id] = { step, solved: solved.map(item => item === true) }
+    }
+    return result
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Where a lesson should open: a finished lesson opens at step 1 with every step unlocked, so it can be
+ * reviewed in any order; an unfinished one opens on the first step still to do, even if the learner
+ * had gone back to look at an earlier one.
+ */
+export function resumeLesson(saved: LessonProgress | undefined, free: boolean[], finished: boolean): LessonProgress {
+  if (finished) return { step: 0, solved: free.map(() => true) }
+  const solved = free.map((isFree, at) => isFree || saved?.solved[at] === true)
+  const firstOpen = solved.findIndex(value => !value)
+  return { step: firstOpen === -1 ? free.length - 1 : firstOpen, solved }
+}

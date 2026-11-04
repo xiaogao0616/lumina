@@ -583,11 +583,22 @@ button, input, textarea { font: inherit; }
   .brand-name { display: none; }
   .string-test-content { grid-template-columns: minmax(0, 1fr); }
   .alphabet-editor { border-right: 0; border-bottom: var(--bw) solid var(--line); }
+  /* One column: keep the region's own toggle clear of the panel's Collapse button in the corner. */
+  .alphabet-editor .region-toggle { margin-right: 84px; }
 }
 @media (max-width: 760px) {
   .topbar { flex-wrap: wrap; padding: 6px 10px; }
   .save-status > span:nth-child(2) { display: none; }
-  .sidebar { width: 200px; flex-basis: 200px; }
+  /* Phones: the page scrolls, the canvas gets the full width and a fixed height, and the panels sit below it. */
+  .tabbed-shell { height: auto; min-height: 100vh; }
+  .workspace { position: relative; }
+  .flow-wrap { flex: 0 0 auto; height: 58vh; min-height: 340px; }
+  .sidebar:not(.grammar-sidebar) { width: 50px; flex-basis: 50px; }
+  .sidebar:not(.grammar-sidebar):not(.is-collapsed) { position: absolute; top: 0; bottom: 0; left: 0; z-index: 40; width: min(260px, 82vw); box-shadow: var(--hard-lg); }
+  .canvas-toolbar { padding: 6px 10px; }
+  .canvas-hint, .connection-hint { max-width: calc(100% - 24px); white-space: normal; text-align: center; }
+  .run-group { flex-wrap: wrap; }
+  .flow-wrap .react-flow__minimap { display: none; }
   .palette-copy small { display: none; }
   .lab-cards, .lab-hero { grid-template-columns: 1fr; }
   .lab-hero-art { display: none; }
@@ -673,7 +684,10 @@ button, input, textarea { font: inherit; }
 .derivation-steps li.is-current .derivation-arrow { color: #121212; }
 .derivation-panel .text-button { align-self: flex-start; margin-top: 8px; }
 @media (max-width: 760px) {
-  .grammar-sidebar { width: 220px; flex-basis: 220px; }
+  .workspace:has(.grammar-sidebar) { flex-direction: column; }
+  .grammar-sidebar:not(.is-collapsed) { width: auto; flex-basis: auto; border-right: 0; border-bottom: var(--bw) solid var(--line); }
+  .grammar-sidebar.is-collapsed { width: auto; flex-basis: auto; border-right: 0; border-bottom: var(--bw) solid var(--line); }
+  .grammar-sidebar .grammar-textarea { min-height: 120px; }
   .derivation-panel { display: none; }
   .stack-panel { width: 132px; }
 }
