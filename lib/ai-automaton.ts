@@ -279,8 +279,40 @@ async function failure(response: Response): Promise<Error> {
     const error = record(body) ? body.error : undefined
     detail = record(error) && typeof error.message === 'string' ? error.message : typeof error === 'string' ? error : ''
   } catch { /* not JSON */ }
-  return new Error(`The AI service answered ${response.status}${detail ? `: ${detail}` : ''}`)
+  return new Error(`${failureHint(response.status)}The AI service answered ${response.status}${detail ? `: ${detail}` : ''}`)
 }
+
+/** A plain-language first sentence for the errors people actually hit, so a busy server isn't mistaken for a bad key. */
+export function failureHint(status: number): string {
+  if (status === 503 || status === 502 || status === 504 || status === 500) return 'The AI service is busy or briefly down; this is on its side, not your key. It was retried a few times. Wait a minute and try again, or pick another model in AI settings. '
+  if (status === 429) return 'You have hit the rate limit or daily quota for this key. Wait a little, or use another key or model. '
+  if (status === 401 || status === 403) return 'The service rejected the API key. Check it in AI settings. '
+  return ''
+}
+
+/** Statuses worth sending again: overload, rate limits and gateway hiccups. */
+export const RETRYABLE = new Set([429, 500, 502, 503, 504])
+export const RETRY_DELAYS_MS = [1500, 4000, 9000]
+
+const pause = (ms: number, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
+  if (signal?.aborted) { reject(signal.reason); return }
+  const timer = setTimeout(resolve, ms)
+  signal?.addEventListener('abort', () => { clearTimeout(timer); reject(signal.reason) }, { once: true })
+})
+
+/** Sends a request, and sends it again after a pause while the service answers with a retryable status. */
+export async function withRetry(send: () => Promise<Response>, signal?: AbortSignal, delays = RETRY_DELAYS_MS): Promise<Response> {
+  let response = await send()
+  for (const delay of delays) {
+    if (!RETRYABLE.has(response.status)) break
+    await pause(delay, signal)
+    response = await send()
+  }
+  return response
+}
+
+// When Google's default model stays overloaded, its lighter sibling usually still answers.
+const GEMINI_FALLBACK_MODEL = 'gemini-flash-lite-latest'
 
 export async function callModel(settings: AiSettings, system: string, prompt: string, image: AiImage | null, signal?: AbortSignal): Promise<string> {
   const base = settings.baseUrl.replace(/\/+$/, '')
@@ -288,7 +320,7 @@ export async function callModel(settings: AiSettings, system: string, prompt: st
     const content: unknown[] = []
     if (image) content.push({ type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } })
     content.push({ type: 'text', text: prompt })
-    const response = await fetch(`${base}/v1/messages`, {
+    const response = await withRetry(() => fetch(`${base}/v1/messages`, {
       method: 'POST', signal,
       headers: {
         'content-type': 'application/json',
@@ -297,22 +329,26 @@ export async function callModel(settings: AiSettings, system: string, prompt: st
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({ model: settings.model, max_tokens: 4096, system, messages: [{ role: 'user', content }] }),
-    })
+    }), signal)
     if (!response.ok) throw await failure(response)
     const body = await response.json() as { content?: { type: string; text?: string }[] }
     return (body.content ?? []).filter(block => block.type === 'text').map(block => block.text ?? '').join('')
   }
   const content: unknown[] = [{ type: 'text', text: prompt }]
   if (image) content.push({ type: 'image_url', image_url: { url: `data:${image.mediaType};base64,${image.base64}` } })
-  const request = (extra: Record<string, unknown>) => fetch(`${base}/chat/completions`, {
+  const request = (extra: Record<string, unknown>, model = settings.model) => withRetry(() => fetch(`${base}/chat/completions`, {
     method: 'POST', signal,
     headers: { 'content-type': 'application/json', authorization: `Bearer ${settings.apiKey}` },
-    body: JSON.stringify({ model: settings.model, messages: [{ role: 'system', content: system }, { role: 'user', content }], ...extra }),
-  })
+    body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content }], ...extra }),
+  }), signal)
   // Gemini thinks at length by default, which makes a photo take tens of seconds; reading a
   // diagram needs little of it. Models that reject the setting get the plain request instead.
   let response = await request(settings.provider === 'gemini' ? { reasoning_effort: 'low' } : {})
   if (response.status === 400 && settings.provider === 'gemini') response = await request({})
+  if (response.status === 503 && settings.provider === 'gemini' && settings.model === defaultModels.gemini) {
+    const lighter = await request({ reasoning_effort: 'low' }, GEMINI_FALLBACK_MODEL)
+    if (lighter.ok) response = lighter
+  }
   if (!response.ok) throw await failure(response)
   const body = await response.json() as { choices?: { message?: { content?: string } }[] }
   return body.choices?.[0]?.message?.content ?? ''
