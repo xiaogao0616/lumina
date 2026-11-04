@@ -117,6 +117,8 @@ test('a busy AI service is retried, and other errors are not', async () => {
   assert.equal(calls, 1)
   assert.match(failureHint(503), /not your key/)
   assert.equal(failureHint(400), '')
+  assert.match(failureHint(400, 'API key not valid. Please pass a valid API key.'), /API key/)
+  assert.match(failureHint(404), /model name/)
 })
 
 test('small JSON slips from a model are repaired, and strings are left alone', () => {

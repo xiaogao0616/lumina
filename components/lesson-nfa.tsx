@@ -51,7 +51,7 @@ function StepAccept({ onSolved }: StepProps) {
     <p className="lesson-task">Does the NFA accept each string? Decide, then check.</p>
     <PredictList words={['ab', 'ba', 'aab', 'abb', 'bab']} truth={word => nfaAccepts(ENDS_AB, word)} onSolved={onSolved}
       explain={word => trace(ENDS_AB, word)}
-      success={<>All correct. This NFA accepts exactly the strings that end in <code>ab</code>, the same language as the lock in lesson 1, with one fewer arrow to think about.</>} />
+      success={<>All correct. This NFA accepts exactly the strings that end in <code>ab</code>, the same language as the lock in lesson 1, with half as many arrows.</>} />
   </>
 }
 

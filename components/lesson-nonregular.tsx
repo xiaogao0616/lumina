@@ -109,7 +109,7 @@ function StepDone() {
     <Learned items={[
       <>A DFA’s only memory is its state, and it has <b>finitely many</b>.</>,
       <>After p letters some state repeats. The part read in between is a <b>loop</b> you can repeat or skip.</>,
-      <>To show a language isn’t regular, pick a string whose pumped versions fall <b>outside</b> it, for <b>every</b> way of splitting.</>,
+      <>To show a language isn’t regular, pick a string of length at least p such that, for <b>every</b> allowed split, <b>some</b> pumped version xyⁱz falls <b>outside</b> it.</>,
     ]} />
     <div className="lesson-next">
       <Link className="secondary-button" href="/pumping">Play the pumping lemma game <ArrowRight size={14} aria-hidden="true" /></Link>

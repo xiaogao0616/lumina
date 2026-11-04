@@ -62,7 +62,8 @@ function AiBuilderDialog({ initial, onStart, onClose }: {
   const [settings, setSettings] = useState<AiSettings>(() => {
     try { return readAiSettings(localStorage.getItem(AI_SETTINGS_KEY)) } catch { return readAiSettings(null) }
   })
-  const [settingsOpen, setSettingsOpen] = useState(!settings.apiKey)
+  // Open the settings straight away when there is no key yet, or when the last run failed over the key, model or address.
+  const [settingsOpen, setSettingsOpen] = useState(!settings.apiKey || /AI settings|base URL/.test(initial.error ?? ''))
   const [error, setError] = useState(initial.error ?? '')
   const cameraRef = useRef<HTMLInputElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)

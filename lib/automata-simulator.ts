@@ -48,5 +48,13 @@ export function simulateAutomaton(states: SimulationState[], transitions: Simula
   const accepting = states.filter(state => state.accepting && current.has(state.id))
   return accepting.length
     ? { status: 'accepted', message: `${consumed === 0 ? 'The empty string' : `All ${consumed} characters`} can reach accepting state ${accepting.map(state => state.label).join(', ')}.` }
-    : { status: 'rejected', message: 'The entire input was read, but no accepting state is reachable.' }
+    : { status: 'rejected', message: rejectedAt(states.filter(state => current.has(state.id))) }
+}
+
+/** Says where a rejected run stopped, so "rejected" points at a state rather than at the whole graph. */
+function rejectedAt(stopped: SimulationState[]): string {
+  const names = stopped.map(state => state.label)
+  if (names.length === 1) return `The entire input was read. The run ended in ${names[0]}, which is not an accepting state.`
+  const list = names.length > 6 ? `${names.slice(0, 6).join(', ')}, …` : names.join(', ')
+  return `The entire input was read. Every run ended in a non-accepting state (${list}).`
 }
