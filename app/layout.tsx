@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 import './globals.css'
+import { Analytics } from '../components/analytics'
 
 const sans = Space_Grotesk({ subsets: ['latin'], variable: '--font-sans', display: 'swap' })
 const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-display', display: 'swap' })
@@ -50,7 +51,7 @@ export default function RootLayout({
         {/* Sets the theme before first paint so a dark-theme reload does not flash light. */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`antialiased ${sans.variable} ${display.variable} ${mono.variable}`}>{children}</body>
+      <body className={`antialiased ${sans.variable} ${display.variable} ${mono.variable}`}>{children}<Analytics /></body>
     </html>
   )
 }
