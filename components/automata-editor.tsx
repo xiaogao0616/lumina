@@ -5,7 +5,7 @@ import { createContext, useContext, useCallback, useEffect, useId, useMemo, useR
 import {
   ArrowRightLeft, Brackets, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleCheck, CircleDot, CirclePlus, CircleQuestionMark, CircleX, Contrast, Copy, Dices, FileCode, FileDown,
   FileUp, FolderOpen, GitCompareArrows, GripVertical, ImageDown, Layers, Link2, ListChecks, LogIn, Minimize2, Pencil, Play, Redo2, Regex, TextCursorInput,
-  TriangleAlert, Trash2, Undo2, Wrench, X, Zap,
+  Map as MapIcon, TriangleAlert, Trash2, Undo2, Wrench, X, Zap,
 } from 'lucide-react'
 import {
   Background,
@@ -498,6 +498,8 @@ const edgeTypes = { routed: RoutedEdge }
 
 /** Below this width the components panel floats over the canvas instead of sitting beside it. Matches globals.css. */
 const NARROW_QUERY = '(max-width: 760px)'
+const HINT_KEY = 'automata-lab.canvas-hint.v1'
+const MINIMAP_KEY = 'automata-lab.minimap.v1'
 
 function PaletteItem({ category, title, subtitle, onDragStart, onClick }: {
   category: StateCategory; title: string; subtitle: string;
@@ -891,6 +893,20 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null)
   const [zoom, setZoom] = useState(1)
   const [connectingId, setConnectingId] = useState<string | null>(null)
+  // The canvas hint can be dismissed for good, and the minimap folded away; both are remembered per browser.
+  const [hintOpen, setHintOpen] = useState(false)
+  const [minimapOpen, setMinimapOpen] = useState(true)
+  useEffect(() => {
+    try {
+      setHintOpen(localStorage.getItem(HINT_KEY) !== 'dismissed')
+      setMinimapOpen(localStorage.getItem(MINIMAP_KEY) !== 'hidden')
+    } catch { setHintOpen(true) }
+  }, [])
+  const dismissHint = () => { setHintOpen(false); try { localStorage.setItem(HINT_KEY, 'dismissed') } catch { /* this page only */ } }
+  const setMinimapOpenSaved = (open: boolean) => {
+    setMinimapOpen(open)
+    try { if (open) localStorage.removeItem(MINIMAP_KEY); else localStorage.setItem(MINIMAP_KEY, 'hidden') } catch { /* this page only */ }
+  }
   const [pointer, setPointer] = useState({ x: 0, y: 0 })
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLElement>(null)
@@ -1020,7 +1036,8 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
     cancelConnection()
     setDraggingState(true)
     setOverDeleteArea(false)
-    setSelectedId(node.id)
+    // Moving a state is not choosing it: the selection tile appears only on a click.
+    setSelectedId(null)
     setEdges(current => current.map(edge => ({ ...edge, selected: false })))
   }, [cancelConnection, setEdges])
   const isOverSidebar = useCallback((event: MouseEvent | TouchEvent) => {
@@ -1533,11 +1550,9 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
           onChange={event => { setCategoryName(event.target.value); setCategoryError('') }}
           onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setAddingCategory(false) } }} />
         {categoryError && <p id="category-error" role="alert">{categoryError}</p>}
-        <span className="category-kind-label" id="category-kind-label">Kind</span>
-        <div className="category-kinds" role="radiogroup" aria-labelledby="category-kind-label">
+        <div className="category-kinds" role="radiogroup" aria-label="Kind of state">
           {(['start', 'state', 'accept'] as const).map(kind => <button key={kind} type="button" role="radio" aria-checked={categoryKind === kind}
             className={categoryKind === kind ? 'is-on' : ''} onClick={() => setCategoryKind(kind)}>
-            <span className={`palette-icon palette-icon-${kind}`} aria-hidden="true">{kind === 'start' ? '→' : kind === 'accept' ? '◎' : '○'}</span>
             {kind === 'start' ? 'Start' : kind === 'accept' ? 'Accept' : 'State'}
           </button>)}
         </div>
@@ -1602,7 +1617,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
           {isDfa && <span className={`stat-pill ${testPassed ? 'is-good' : ''}`} title="Whether Validate DFA has confirmed this is a standard DFA since it last changed — not whether a particular test string was accepted">Validated <b>{testPassed ? 'Yes' : 'No'}</b></span>}
         </div>
         <div className="toolbar-actions">{selectedStart && <button className="tool-button" type="button" onClick={toggleStartAccepting} aria-pressed={!!selectedStart.data.accepting}>◎ <span>{selectedStart.data.accepting ? 'Start accepts' : 'Start rejects ε'}</span></button>}</div>
-      </div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }} onMouseMove={onPaneMouseMove}>{reshapeTick > 0 && <div key={reshapeTick} className="reshape-flash" aria-hidden="true" />}{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} color={sourceColor(connectingNode)} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, data: { ...node.data, related: node.id === focusedEdge?.source || node.id === focusedEdge?.target, onRename: () => renameNode(node.id), onDelete: () => deleteNode(node.id), onToggleAccept: () => toggleAccepting(node.id), onMakeStart: () => makeStart(node.id), animating: activeFrame && node.id === activeFrame.stateId ? activeKind ?? undefined : undefined, animatingTick: animation?.tick }, selected: node.id === selectedId || node.id === connectingId, draggable: true }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeClick={onEdgeClick} onEdgeMouseEnter={onEdgeMouseEnter} onEdgeMouseLeave={onEdgeMouseLeave} onNodeClick={onNodeClick} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop} autoPanOnNodeDrag={false} nodeDragThreshold={5} nodeClickDistance={5} onNodesDelete={onNodesDelete} deleteKeyCode={['Backspace', 'Delete']} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={fitViewOptions} minZoom={0.35} maxZoom={2}><Background variant={BackgroundVariant.Lines} gap={28} lineWidth={1} /><Controls showInteractive={false} position="bottom-right" /><MiniMap nodeColor={(node) => inkColor(sourceColor(node as AutomataNode))} maskColor="var(--minimap-mask)" position="bottom-left" /></ReactFlow>{connectingNode ? <div className="connection-hint">Click a target (or source for a loop) · Drag to move · Esc to cancel</div> : nodes.length === 0 ? <div className="canvas-empty-hint">Drag a state in from the sidebar to get started</div> : <div className="canvas-hint">Click a state to connect · Drag a state to move</div>}<WorkspaceCat result={testResult} watching={!!animation} />
+      </div><div className="flow-wrap" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' }} onMouseMove={onPaneMouseMove}>{reshapeTick > 0 && <div key={reshapeTick} className="reshape-flash" aria-hidden="true" />}{connectingNode && previewSourcePoint && <ConnectionPreview sourcePoint={previewSourcePoint} pointer={pointer} color={sourceColor(connectingNode)} />}<ReactFlow nodes={nodes.map((node) => ({ ...node, data: { ...node.data, related: node.id === focusedEdge?.source || node.id === focusedEdge?.target, onRename: () => renameNode(node.id), onDelete: () => deleteNode(node.id), onToggleAccept: () => toggleAccepting(node.id), onMakeStart: () => makeStart(node.id), animating: activeFrame && node.id === activeFrame.stateId ? activeKind ?? undefined : undefined, animatingTick: animation?.tick }, selected: node.id === selectedId || node.id === connectingId, draggable: true }))} edges={routedEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)} onNodeMouseLeave={() => setHoveredNodeId(null)} onEdgeClick={onEdgeClick} onEdgeMouseEnter={onEdgeMouseEnter} onEdgeMouseLeave={onEdgeMouseLeave} onNodeClick={onNodeClick} onNodeDragStart={onNodeDragStart} onNodeDrag={onNodeDrag} onNodeDragStop={onNodeDragStop} autoPanOnNodeDrag={false} nodeDragThreshold={5} nodeClickDistance={5} onNodesDelete={onNodesDelete} deleteKeyCode={['Backspace', 'Delete']} onPaneClick={onPaneClick} onMove={(_, viewport) => setZoom(viewport.zoom)} zoomOnDoubleClick={false} fitView fitViewOptions={fitViewOptions} minZoom={0.35} maxZoom={2}><Background variant={BackgroundVariant.Lines} gap={28} lineWidth={1} /><Controls showInteractive={false} position="bottom-right" />{minimapOpen && <MiniMap nodeColor={(node) => inkColor(sourceColor(node as AutomataNode))} maskColor="var(--minimap-mask)" position="bottom-left" />}</ReactFlow><button type="button" className={`minimap-toggle ${minimapOpen ? 'is-open' : ''}`} onClick={() => setMinimapOpenSaved(!minimapOpen)} aria-pressed={minimapOpen} title={minimapOpen ? 'Hide the minimap' : 'Show the minimap'} aria-label={minimapOpen ? 'Hide the minimap' : 'Show the minimap'}>{minimapOpen ? <X size={12} aria-hidden="true" /> : <MapIcon size={16} aria-hidden="true" />}</button>{connectingNode ? <div className="connection-hint">Click a target (or source for a loop) · Drag to move · Esc to cancel</div> : nodes.length === 0 ? <div className="canvas-empty-hint">Drag a state in from the sidebar to get started</div> : hintOpen ? <div className="canvas-hint">Click a state to connect · Drag a state to move<button type="button" className="canvas-hint-close" onClick={dismissHint} title="Don't show this again" aria-label="Don't show this hint again"><X size={11} aria-hidden="true" /></button></div> : null}<WorkspaceCat result={testResult} watching={!!animation} />
         {isPda && <StackPanel step={stackStep} index={stackIndex} total={stackSteps?.length ?? 0} inputLength={Array.from(testString).length} />}
         {isTm && <TapePanel step={tapeStep} index={tapeIndex} total={tapeSteps?.length ?? 0} moves={tapeMoves}
           stateLabel={nodes.find(node => node.id === tapeStep?.stateId)?.data.label ?? ''} />}
