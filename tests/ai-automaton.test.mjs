@@ -103,3 +103,18 @@ test('a Turing machine reply with two rules for one read symbol is refused', () 
   assert.match(result.message, /two rules/)
   assert.equal(specToResult({ type: 'tm', states: [{ name: 'p', start: true }], transitions: [{ from: 'p', to: 'p', symbols: ['a→b,S'] }] }, 'tm').ok, false)
 })
+
+test('a busy AI service is retried, and other errors are not', async () => {
+  const { withRetry, failureHint } = loadTs('ai-automaton.ts')
+  const answers = [503, 503, 200]
+  let calls = 0
+  const response = await withRetry(async () => ({ status: answers[calls++] }), undefined, [0, 0, 0])
+  assert.equal(response.status, 200)
+  assert.equal(calls, 3)
+  calls = 0
+  const bad = await withRetry(async () => { calls++; return { status: 401 } }, undefined, [0, 0, 0])
+  assert.equal(bad.status, 401)
+  assert.equal(calls, 1)
+  assert.match(failureHint(503), /not your key/)
+  assert.equal(failureHint(400), '')
+})
