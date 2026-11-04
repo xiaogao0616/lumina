@@ -77,7 +77,57 @@ export function extractJson(text: string): unknown {
   const start = body.indexOf('{')
   const end = body.lastIndexOf('}')
   if (start < 0 || end <= start) throw new Error('The model did not return JSON.')
-  return JSON.parse(body.slice(start, end + 1))
+  const json = body.slice(start, end + 1)
+  try {
+    return JSON.parse(json)
+  } catch (first) {
+    // Models sometimes slip in the small mistakes people make by hand; fix those before giving up.
+    try { return JSON.parse(repairJson(json)) } catch { throw first }
+  }
+}
+
+/** A follow-up asking the model to fix an answer the app could not use. */
+export function repairPrompt(original: string, reply: string, problem: string): string {
+  return `${original}\n\nYour previous answer could not be used: ${problem}\nHere it is:\n${reply.slice(0, 12000)}\n\nReply again with the complete corrected JSON object only, no prose and no code fence. Make sure it is valid JSON: commas between items, no trailing commas, no comments.`
+}
+
+/**
+ * Fixes common hand-written JSON slips outside strings: // comments, trailing commas, and a missing
+ * comma between two values. Inside strings it only escapes raw newlines.
+ */
+export function repairJson(json: string): string {
+  let out = ''
+  // What the last character outside a string was: a value just ended, or a separator/opener came.
+  let last: 'value' | 'open' | 'colon' | 'comma' = 'open'
+  for (let at = 0; at < json.length; at++) {
+    const char = json[at]
+    if (/\s/.test(char)) { out += char; continue }
+    if (char === '/' && json[at + 1] === '/') { while (at < json.length && json[at] !== '\n') at++; out += '\n'; continue }
+    if (char === '}' || char === ']') {
+      if (last === 'comma') out = out.replace(/,(\s*)$/, '$1')
+      out += char; last = 'value'; continue
+    }
+    if (char === ',') { if (last !== 'comma') out += char; last = 'comma'; continue }
+    if (char === ':') { out += char; last = 'colon'; continue }
+    if (last === 'value') out = out.replace(/(\s*)$/, ',$1')
+    if (char === '{' || char === '[') { out += char; last = 'open'; continue }
+    if (char === '"') {
+      let end = at + 1
+      let text = '"'
+      for (; end < json.length; end++) {
+        const inner = json[end]
+        if (inner === '\\') { text += inner + (json[end + 1] ?? ''); end++; continue }
+        if (inner === '"') break
+        text += inner === '\n' ? '\\n' : inner
+      }
+      out += text + '"'; at = end; last = 'value'; continue
+    }
+    // A bare word or number: copy it whole.
+    let end = at
+    while (end < json.length && /[^\s,:{}\[\]"]/.test(json[end])) end++
+    out += json.slice(at, end); at = end - 1; last = 'value'
+  }
+  return out
 }
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
@@ -328,7 +378,7 @@ export async function callModel(settings: AiSettings, system: string, prompt: st
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true',
       },
-      body: JSON.stringify({ model: settings.model, max_tokens: 4096, system, messages: [{ role: 'user', content }] }),
+      body: JSON.stringify({ model: settings.model, max_tokens: 8192, system, messages: [{ role: 'user', content }] }),
     }), signal)
     if (!response.ok) throw await failure(response)
     const body = await response.json() as { content?: { type: string; text?: string }[] }

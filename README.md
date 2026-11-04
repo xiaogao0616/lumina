@@ -12,7 +12,7 @@ A loud, hands-on DFA / NFA / PDA / TM / CFG workbench with five interactive less
 ![React](https://img.shields.io/badge/React_19-20232a?logo=react&logoColor=61dafb)
 ![React Flow](https://img.shields.io/badge/React_Flow-ff0072?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-151_passing-34d399)
+![Tests](https://img.shields.io/badge/tests-152_passing-34d399)
 ![No backend](https://img.shields.io/badge/backend-none-67e8f9)
 
 <img src="docs/screenshot-home.jpg" alt="The Automata Lab home page: the headline One workspace, five rulebooks, an animated automaton reading aab, and a yellow banner linking to five interactive lessons" width="100%">
@@ -314,7 +314,7 @@ All the theory lives in plain, tested TypeScript under [`lib/`](lib/), separate 
 | `editor-storage.ts` | Versioned, validated local saves and tab index |
 
 ```bash
-npm test           # 151 tests, node --test
+npm test           # 152 tests, node --test
 npm run typecheck  # route types + tsc --noEmit
 npm run build      # static export into out/
 ```
