@@ -148,9 +148,11 @@ const ANIM_FINAL_MS = 650
 const EXAMPLE_LENGTH = 20
 const PDA_EXAMPLE_LENGTH = 12
 const TM_EXAMPLE_LENGTH = 9
-// A Turing machine takes many more moves than a PDA, so its walk plays faster, and faster still when long.
-const TM_STEP_MS = 160
-const TM_FAST_STEP_MS = 45
+// Slow enough to follow the head on the tape; very long runs (over TM_FAST_AFTER moves) speed up so they
+// still finish, and Run instantly is there for anyone who only wants the answer.
+const TM_STEP_MS = 420
+const TM_FAST_STEP_MS = 110
+const TM_FAST_AFTER = 200
 
 // Strings that contain aa or bb: ε-moves guess which pair to look for, then each branch guesses where it starts.
 const nfaInitialNodes: AutomataNode[] = [
@@ -697,7 +699,7 @@ function AutomataLab({ mode, saveKey, tabTitle, onConvert, actions, peers, exerc
     const isLastFrameOfAttempt = animation.frameIndex === attempt.frames.length - 1
     const isLastAttempt = animation.attemptIndex === animation.attempts.length - 1
     const concluding = isLastFrameOfAttempt && (attempt.accepted || isLastAttempt)
-    const delay = animation.tmSteps && !isLastFrameOfAttempt ? (attempt.frames.length > 120 ? TM_FAST_STEP_MS : TM_STEP_MS)
+    const delay = animation.tmSteps && !isLastFrameOfAttempt ? (attempt.frames.length > TM_FAST_AFTER ? TM_FAST_STEP_MS : TM_STEP_MS)
       : attempt.accepted || isLastAttempt ? ANIM_FINAL_MS : ANIM_STEP_MS
     const timer = setTimeout(() => {
       if (concluding) {
