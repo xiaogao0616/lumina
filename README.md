@@ -56,7 +56,7 @@ Each kind of machine gets its own workspace. They open as tabs side by side, so 
 | [**DFA**](https://xiaogao0616.github.io/lumina/dfa/) | Diagnostics name every missing arrow. **Validate DFA** explains what's wrong in plain words and can fill the gaps with a sink state. Minimize, complement, convert to a regex. |
 | [**NFA**](https://xiaogao0616.github.io/lumina/nfa/) | ε-moves and branching. Build one from a regex (Thompson's construction) and convert it to a DFA (subset construction). |
 | [**PDA**](https://xiaogao0616.github.io/lumina/pda/) | Rules like `a, X → YZ` on the arrows, and a stack panel that follows the run move by move. |
-| [**TM**](https://xiaogao0616.github.io/lumina/tm/) | Single-tape and deterministic, as in Sipser. A tape panel follows the head, and runs that loop are caught. Examples include `w#w`, `0^(2ⁿ)` and `aⁿbⁿcⁿ`. |
+| [**TM**](https://xiaogao0616.github.io/lumina/tm/) | Single-tape and deterministic, as in Sipser. A tape panel follows the head at a pace you can read, and runs that loop are caught. Examples include `w#w`, `0^(2ⁿ)` and `aⁿbⁿcⁿ`. |
 | [**CFG**](https://xiaogao0616.github.io/lumina/cfg/) | Type rules like `S → aSb \| ε` and get a parse tree and leftmost derivation. You can also convert to Chomsky normal form step by step, check for ambiguity, or convert to a PDA. |
 
 **Every workspace can:**
@@ -65,7 +65,10 @@ Each kind of machine gets its own workspace. They open as tabs side by side, so 
 - **Run animated** to watch the string walk through the machine, or **Run instantly** for just the verdict.
 - Generate accepted strings shortest-first, or fill in a random test string.
 - Export JSON, SVG or LaTeX (TikZ), and make a **share link** that packs the whole tab into the URL.
-- Undo and redo with `Ctrl+Z` / `Ctrl+Shift+Z`. A three-step tour runs the first time you open a workspace.
+- Undo and redo with `Ctrl+Z` / `Ctrl+Shift+Z`.
+- Keep the canvas clear: close the hint at the bottom, fold the minimap into a small button, or tuck the cat away. Each choice is remembered.
+
+The first time you open a DFA, NFA, PDA or TM tab, a three-step tour dims the page and points at the components panel, a transition and the test row in turn. A CFG tab gets a single tip pointing at the rules box. Both can be shown again from the **?** help in the side panel.
 
 <table>
 <tr>
@@ -110,9 +113,9 @@ On a narrow screen the canvas takes the full width and the page scrolls, with th
 
 ## 🌗 The look
 
-It's neo-brutalist on purpose: thick ink outlines, hard shadows, a grid-paper canvas, with Bricolage Grotesque, Space Grotesk and JetBrains Mono for type. Light and dark themes are remembered and never flash on load.
+It's neo-brutalist on purpose: thick ink outlines, hard shadows, a grid-paper canvas, with Bricolage Grotesque, Space Grotesk and JetBrains Mono for type. It opens in the light theme; switch to dark and that choice is remembered, with no flash on load.
 
-A cat sits at the corner of the canvas. It follows your pointer, cheers when a string is accepted, sulks when one is rejected, and falls asleep if you leave it alone.
+A cat sits at the corner of the canvas. It follows your pointer, cheers when a string is accepted, sulks when one is rejected, and falls asleep if you leave it alone. Its × button tucks it into a paw if you'd rather work without it.
 
 ## 🚀 Run it yourself
 
@@ -130,6 +133,8 @@ npm run build        # static export into out/
 ```
 
 Every push to `main` is built and published to GitHub Pages by [`deploy.yml`](.github/workflows/deploy.yml). The site lives under `/lumina`, so the workflow builds with `NEXT_PUBLIC_BASE_PATH=/lumina`. Locally the variable is empty and the app runs at `/`.
+
+The published site counts page views with [GoatCounter](https://www.goatcounter.com/): no cookies and no personal data, only the page path. Local runs and Vercel previews aren't counted. To turn it off, empty `GOATCOUNTER_CODE` in [`components/analytics.tsx`](components/analytics.tsx).
 
 <details>
 <summary><b>Three short walkthroughs</b></summary>
