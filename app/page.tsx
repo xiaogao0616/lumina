@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, GraduationCap, Lock, Scale, Swords, Zap } from 'lucide-react'
 import { HeroAutomaton } from '../components/hero-automaton'
+import { LESSONS } from '../lib/lessons'
 import { ThemeToggle } from '../components/theme-toggle'
 
 const labs = [
@@ -38,8 +39,8 @@ export default function HomePage() {
           <span className="lab-start-icon"><Lock size={22} aria-hidden="true" /></span>
           <span className="lab-start-copy">
             <small>New to automata? Start here</small>
-            <b>Six interactive lessons, from DFAs to decidability</b>
-            <span>Start with a two-button lock and work up through NFAs, regular expressions, the pumping lemma and context-free grammars. No background needed.</span>
+            <b>{LESSONS.length} interactive lessons, from DFAs to undecidability</b>
+            <span>Start with a two-button lock and work up through NFAs, regular expressions, the pumping lemma, grammars, and what no computer can decide. No background needed.</span>
           </span>
           <ArrowRight size={20} aria-hidden="true" />
         </Link>

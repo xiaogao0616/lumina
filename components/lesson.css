@@ -143,3 +143,14 @@
 .lesson-run.is-rejected { border-color: var(--danger); }
 .lesson-run.is-loops { border-color: var(--accent); border-style: dashed; }
 .lesson-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.lesson-table-wrap { overflow-x: auto; }
+.lesson-diag th, .lesson-diag td { text-align: center; white-space: nowrap; }
+.lesson-diag tbody th { text-align: left; color: var(--text); }
+.lesson-diag td.is-diagonal { background: color-mix(in srgb, var(--accent) 55%, transparent); color: #121212; font-weight: 700; }
+.lesson-diag tr.is-new th { color: var(--link); }
+.lesson-diag tr.is-new button { min-width: 64px; height: 30px; padding: 0 8px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: var(--raised); color: var(--text); font: 700 var(--fs-small) var(--font-mono), monospace; cursor: pointer; }
+.lesson-diag tr.is-new button.is-clash { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 18%, var(--raised)); }
+@media (max-width: 520px) {
+  .lesson-diag th, .lesson-diag td { padding: 5px 3px; font-size: 12px; }
+  .lesson-diag tr.is-new button { min-width: 0; width: 100%; padding: 0 2px; font-size: 11px; }
+}

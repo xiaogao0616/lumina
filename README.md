@@ -4,7 +4,7 @@
 
 **Learn automata theory by building the machines yourself.**
 
-Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free grammars, and watch a string walk through each one until it's accepted or rejected. It comes with hands-on lessons for complete beginners, from a first DFA to decidability. Everything runs in your browser: no account, no server, and there's a cat.
+Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free grammars, and watch a string walk through each one until it's accepted or rejected. It comes with hands-on lessons for complete beginners, from a first DFA to undecidability. Everything runs in your browser: no account, no server, and there's a cat.
 
 [![Open Automata Lab](https://img.shields.io/badge/▶_Open_Automata_Lab-xiaogao0616.github.io%2Flumina-ffd23f?style=for-the-badge&labelColor=121212)](https://xiaogao0616.github.io/lumina/)
 
@@ -23,7 +23,7 @@ Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free gramm
 
 | If you… | Go to |
 | --- | --- |
-| have never seen an automaton | [**The lessons**](https://xiaogao0616.github.io/lumina/learn/): six short ones, from your first DFA to decidable problems, about 40 minutes in all |
+| have never seen an automaton | [**The lessons**](https://xiaogao0616.github.io/lumina/learn/): seven short ones, from your first DFA to undecidable problems, under an hour in all |
 | want to check a homework machine or grammar | [**A workspace**](https://xiaogao0616.github.io/lumina/dfa/): draw it, run strings, convert it, export it |
 | want practice that grades itself | **Practice** in any DFA/NFA toolbar: 12 languages, each answer checked exactly |
 | are working on proofs | The [**pumping lemma game**](https://xiaogao0616.github.io/lumina/pumping/) and the [**deciders**](https://xiaogao0616.github.io/lumina/deciders/) from Sipser chapter 4 |
@@ -40,6 +40,7 @@ Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free gramm
 | 4 | [What finite memory can't do](https://xiaogao0616.github.io/lumina/learn/nonregular/) | break a DFA that tries to count aⁿbⁿ and discover the pumping lemma yourself |
 | 5 | [Grammars that grow strings](https://xiaogao0616.github.io/lumina/learn/cfg/) | derive strings by tapping rules, then write a grammar for even palindromes |
 | 6 | [Questions with guaranteed answers](https://xiaogao0616.github.io/lumina/learn/decidable/) | watch a Turing machine run forever, then play the A<sub>DFA</sub>, E<sub>DFA</sub> and EQ<sub>DFA</sub> deciders by hand |
+| 7 | [Questions no machine can answer](https://xiaogao0616.github.io/lumina/learn/undecidable/) | flip the diagonal of a table to build a machine that contradicts itself, and see why A<sub>TM</sub> is undecidable |
 
 Your progress is saved in the browser. A lesson you leave halfway reopens on the step you still have to do. A lesson you've finished opens with every step unlocked, so you can jump back to any part of it.
 
