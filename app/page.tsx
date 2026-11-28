@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, GraduationCap, Lock, Scale, Swords, Zap } from 'lucide-react'
+import { ArrowRight, GraduationCap, Lock, Network, Scale, Swords, Zap } from 'lucide-react'
 import { HeroAutomaton } from '../components/hero-automaton'
 import { LESSONS } from '../lib/lessons'
 import { ThemeToggle } from '../components/theme-toggle'
@@ -39,8 +39,8 @@ export default function HomePage() {
           <span className="lab-start-icon"><Lock size={22} aria-hidden="true" /></span>
           <span className="lab-start-copy">
             <small>New to automata? Start here</small>
-            <b>{LESSONS.length} interactive lessons, from DFAs to undecidability</b>
-            <span>Start with a two-button lock and work up through NFAs, regular expressions, the pumping lemma, grammars, and what no computer can decide. No background needed.</span>
+            <b>{LESSONS.length} interactive lessons, from DFAs to P vs NP</b>
+            <span>Start with a two-button lock and work up through NFAs, regular expressions, the pumping lemma, grammars, what no computer can decide, and what makes a problem NP-complete. No background needed.</span>
           </span>
           <ArrowRight size={20} aria-hidden="true" />
         </Link>
@@ -73,6 +73,12 @@ export default function HomePage() {
             <h2>Deciders</h2>
             <p>Sipser chapter 4, run step by step: A<sub>DFA</sub>, E<sub>DFA</sub>, EQ<sub>DFA</sub>, A<sub>CFG</sub>, E<sub>CFG</sub> and more, on the examples or your own tabs. Each shows why it always halts, and why A<sub>TM</sub> can’t.</p>
             <span>Step through <ArrowRight size={14} aria-hidden="true" /></span>
+          </Link>
+          <Link className="lab-card is-np" href="/np-lab">
+            <span className="lab-card-icon"><Network size={22} aria-hidden="true" /></span>
+            <h2>NP reduction lab</h2>
+            <p>Sipser chapter 7: type a 3-CNF formula and watch it become a CLIQUE or VERTEX-COVER graph. Find a solution in the graph and read the satisfying assignment back out.</p>
+            <span>Reduce <ArrowRight size={14} aria-hidden="true" /></span>
           </Link>
         </div>
       </main>
