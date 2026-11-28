@@ -180,3 +180,19 @@
 .lesson-euclid code { font-size: 15px; }
 @media (max-width: 520px) { .lesson-bar-row { grid-template-columns: 1fr; gap: 4px; } }
 @media (prefers-reduced-motion: reduce) { .lesson-bar > span { animation: none; } }
+
+.np-vars .lesson-chip { min-width: 74px; }
+.np-clauses { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.np-clauses li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1.5px solid var(--border-soft); border-radius: var(--radius-md); }
+.np-clauses li.is-true { border-color: var(--success); background: color-mix(in srgb, var(--success-fill) 40%, transparent); }
+.np-clauses li.is-false { border-color: var(--danger); border-style: dashed; }
+.np-clauses code { background: none; padding: 0; }
+.lesson-diagram.np-diagram svg { max-width: 460px; max-height: 380px; }
+.lesson-diagram.np-map svg { max-width: 560px; max-height: 260px; }
+.np-map text { fill: var(--text); font: 800 18px var(--font-display), var(--font-sans), sans-serif; }
+.np-map .np-map-small { font: 700 12px var(--font-mono), monospace; }
+.np-map-np { fill: color-mix(in srgb, var(--link) 12%, transparent); stroke: var(--line); stroke-width: 2.5; }
+.np-map-p { fill: color-mix(in srgb, var(--success-fill) 70%, transparent); stroke: var(--line); stroke-width: 2.5; }
+.np-map-hard { fill: color-mix(in srgb, var(--danger-fill) 45%, transparent); stroke: var(--line); stroke-width: 2.5; stroke-dasharray: 7 5; }
+.np-map-npc { fill: var(--accent); stroke: none; }
+.np-sort .lesson-predict-row > div { flex-wrap: wrap; }

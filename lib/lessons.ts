@@ -20,6 +20,8 @@ export const LESSONS: LessonInfo[] = [
     blurb: 'Turn a halting decider into an A_TM decider, build a mapping reduction cell by cell, and sort questions with Rice’s theorem.' },
   { id: 'time', number: 9, title: 'How long it takes', minutes: 7,
     blurb: 'Time a real Turing machine as inputs double, read off big-O, and see why polynomial time, the class P, is the line that matters.' },
+  { id: 'np', number: 10, title: 'Easy to check, hard to find', minutes: 9,
+    blurb: 'Check a certificate, turn a formula into a graph and find its clique, and place problems on the map of P, NP, NP-complete and NP-hard.' },
 ]
 
 export const lessonById = (id: string) => LESSONS.find(lesson => lesson.id === id)
