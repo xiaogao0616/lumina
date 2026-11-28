@@ -4,7 +4,7 @@
 
 **Learn automata theory by building the machines yourself.**
 
-Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free grammars, and watch a string walk through each one until it's accepted or rejected. It comes with five hands-on lessons for complete beginners. Everything runs in your browser: no account, no server, and there's a cat.
+Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free grammars, and watch a string walk through each one until it's accepted or rejected. It comes with hands-on lessons for complete beginners, from a first DFA to P vs NP. Everything runs in your browser: no account, no server, and there's a cat.
 
 [![Open Automata Lab](https://img.shields.io/badge/▶_Open_Automata_Lab-xiaogao0616.github.io%2Flumina-ffd23f?style=for-the-badge&labelColor=121212)](https://xiaogao0616.github.io/lumina/)
 
@@ -12,7 +12,7 @@ Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free gramm
 ![React](https://img.shields.io/badge/React_19-20232a?logo=react&logoColor=61dafb)
 ![React Flow](https://img.shields.io/badge/React_Flow-ff0072?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-156_passing-34d399)
+![Tests](https://img.shields.io/badge/tests-165_passing-34d399)
 ![No backend](https://img.shields.io/badge/backend-none-67e8f9)
 
 <img src="docs/screenshot-home.jpg" alt="The Automata Lab home page: the headline One workspace, five rulebooks, an animated automaton reading aab, and a yellow banner linking to five interactive lessons" width="100%">
@@ -23,14 +23,14 @@ Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free gramm
 
 | If you… | Go to |
 | --- | --- |
-| have never seen an automaton | [**The lessons**](https://xiaogao0616.github.io/lumina/learn/): five short ones, from your first DFA to grammars, about half an hour in all |
+| have never seen an automaton | [**The lessons**](https://xiaogao0616.github.io/lumina/learn/): ten short ones, from your first DFA to NP-completeness |
 | want to check a homework machine or grammar | [**A workspace**](https://xiaogao0616.github.io/lumina/dfa/): draw it, run strings, convert it, export it |
 | want practice that grades itself | **Practice** in any DFA/NFA toolbar: 12 languages, each answer checked exactly |
-| are working on proofs | The [**pumping lemma game**](https://xiaogao0616.github.io/lumina/pumping/) and the [**deciders**](https://xiaogao0616.github.io/lumina/deciders/) from Sipser chapter 4 |
+| are working on proofs | The [**pumping lemma game**](https://xiaogao0616.github.io/lumina/pumping/) the [**deciders**](https://xiaogao0616.github.io/lumina/deciders/) from Sipser chapter 4, and the [**NP reduction lab**](https://xiaogao0616.github.io/lumina/np-lab/) from chapter 7 |
 
 ## 📖 Lessons
 
-[`/learn`](https://xiaogao0616.github.io/lumina/learn/) follows Sipser chapters 1 and 2 and assumes nothing. Each step asks you to *do* something, like press buttons, tap a state, predict an answer, or write a regex or a grammar. **Continue** unlocks only once you've done it.
+[`/learn`](https://xiaogao0616.github.io/lumina/learn/) follows Sipser chapters 1, 2, 4, 5 and 7 and assumes nothing. Each step asks you to *do* something, like press buttons, tap a state, predict an answer, or write a regex or a grammar. **Continue** unlocks only once you've done it.
 
 | # | Lesson | You will… |
 | --- | --- | --- |
@@ -39,6 +39,11 @@ Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free gramm
 | 3 | [Regular expressions](https://xiaogao0616.github.io/lumina/learn/regex/) | predict what union, concatenation and star match, then write a regex that's checked on every string up to length 7 |
 | 4 | [What finite memory can't do](https://xiaogao0616.github.io/lumina/learn/nonregular/) | break a DFA that tries to count aⁿbⁿ and discover the pumping lemma yourself |
 | 5 | [Grammars that grow strings](https://xiaogao0616.github.io/lumina/learn/cfg/) | derive strings by tapping rules, then write a grammar for even palindromes |
+| 6 | [Questions with guaranteed answers](https://xiaogao0616.github.io/lumina/learn/decidable/) | watch a Turing machine run forever, then play the A<sub>DFA</sub>, E<sub>DFA</sub> and EQ<sub>DFA</sub> deciders by hand |
+| 7 | [Questions no machine can answer](https://xiaogao0616.github.io/lumina/learn/undecidable/) | flip the diagonal of a table to build a machine that contradicts itself, and see why A<sub>TM</sub> is undecidable |
+| 8 | [Passing the hardness along](https://xiaogao0616.github.io/lumina/learn/reductions/) | turn a halting decider into an A<sub>TM</sub> decider, build A<sub>TM</sub> ≤<sub>m</sub> HALT<sub>TM</sub> cell by cell, and sort questions with Rice’s theorem |
+| 9 | [How long it takes](https://xiaogao0616.github.io/lumina/learn/time/) | time a real Turing machine as inputs double, read off big-O, sort running times into polynomial and not, and run Euclid’s algorithm |
+| 10 | [Easy to check, hard to find](https://xiaogao0616.github.io/lumina/learn/np/) | check a certificate, turn a formula into a graph and find its clique, and place problems on the map of P, NP, NP-complete and NP-hard |
 
 Your progress is saved in the browser. A lesson you leave halfway reopens on the step you still have to do. A lesson you've finished opens with every step unlocked, so you can jump back to any part of it.
 
@@ -87,6 +92,7 @@ The first time you open a DFA, NFA, PDA or TM tab, a three-step tour dims the pa
 - **Compare or combine** two tabs: test whether they're equivalent (with the shortest counterexample), or build their union, intersection or difference.
 - **Pumping lemma game**: the computer picks *p* and the split, and you pick *s* and *i*. A table shows whether your *s* beats every split, and the languages you've won on get a badge.
 - **Deciders** (Sipser chapter 4): A<sub>DFA</sub>, A<sub>NFA</sub>, A<sub>REX</sub>, E<sub>DFA</sub>, EQ<sub>DFA</sub>, A<sub>CFG</sub> and E<sub>CFG</sub>, each run the way the proof does it, step by step, along with why it always halts. A last panel shows why A<sub>TM</sub> has none.
+- **NP reduction lab** (Sipser chapter 7): type a 3-CNF formula and watch it become a CLIQUE graph (Theorem 7.32) or a VERTEX-COVER graph (Theorem 7.44). Pick nodes yourself or let the lab search, and the solution is read back as a satisfying assignment. A satisfying assignment can also be mapped forward into the graph.
 
 <table>
 <tr>
@@ -99,7 +105,7 @@ The first time you open a DFA, NFA, PDA or TM tab, a three-step tour dims the pa
 
 The pink **✦ AI** button builds a machine from a description ("strings over {a, b} that end in ab") or from a photo of a hand-drawn diagram. You can choose the machine type or let the model pick. It runs in the background while you keep working.
 
-The result has to pass the same checks as an imported file before it opens in a new tab. Busy servers are retried, and broken answers are repaired or sent back to the model once. If something still fails, the error says what to do: check the key, wait out the quota, or rephrase.
+The result has to pass the same checks as an imported file before it opens in a new tab, and it can have at most 30 states, so a Turing machine can't sprawl. Busy servers are retried, and broken answers are repaired or sent back to the model once. If something still fails, the error says what to do: check the key, wait out the quota, or rephrase.
 
 It uses **your own API key**, called straight from the browser: Google Gemini (free key from [AI Studio](https://aistudio.google.com/apikey)), Anthropic, or any OpenAI-compatible endpoint. The key stays in this browser and goes only to the address you set.
 
@@ -127,7 +133,7 @@ npm run dev          # http://localhost:3000
 ```
 
 ```bash
-npm test             # 156 tests with node --test
+npm test             # 165 tests with node --test
 npm run typecheck    # route types + tsc --noEmit
 npm run build        # static export into out/
 ```
@@ -197,6 +203,8 @@ All the theory is plain, tested TypeScript in [`lib/`](lib/), kept apart from th
 | `pda.ts` / `turing.ts` | Bounded runs with the stack or tape at every move, examples, branching and loop detection |
 | `cfg.ts` / `cfg-transform.ts` | Grammar parsing and checks, Earley parsing with a parse tree, CFG → PDA, Chomsky normal form, ambiguity search |
 | `deciders.ts` / `decider-examples.ts` | The chapter 4 deciders with a trace of every stage |
+| `complexity.ts` | The O(n²) zig-zag Turing machine for 0<sup>k</sup>1<sup>k</sup> and the Euclidean algorithm, for lesson 9 |
+| `np.ts` | 3-CNF parsing, brute-force SAT, and the 3SAT → CLIQUE and 3SAT → VERTEX-COVER reductions with solutions mapped both ways |
 | `exercises.ts` / `pumping.ts` | The practice checker, and the pumping lemma game's languages and splits |
 | `accepted-strings.ts` / `path-animation.ts` | Accepted strings in shortlex order, and the walks behind the animation |
 | `ai-automaton.ts` | Prompts for the AI builder, plus repair and validation of what comes back |

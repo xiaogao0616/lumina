@@ -12,6 +12,16 @@ export const LESSONS: LessonInfo[] = [
     blurb: 'Break a machine that tries to count, find the loop every DFA must have, and see why aⁿbⁿ isn’t regular.' },
   { id: 'cfg', number: 5, title: 'Grammars that grow strings', minutes: 7,
     blurb: 'Rewrite rules that can nest and count. Derive strings by hand, then write a grammar of your own.' },
+  { id: 'decidable', number: 6, title: 'Questions with guaranteed answers', minutes: 7,
+    blurb: 'Watch a Turing machine run forever, then play three deciders by hand and see why each one always stops.' },
+  { id: 'undecidable', number: 7, title: 'Questions no machine can answer', minutes: 7,
+    blurb: 'Flip the diagonal of a table to build a machine that contradicts itself, and see why A_TM has no decider.' },
+  { id: 'reductions', number: 8, title: 'Passing the hardness along', minutes: 8,
+    blurb: 'Turn a halting decider into an A_TM decider, build a mapping reduction cell by cell, and sort questions with Rice’s theorem.' },
+  { id: 'time', number: 9, title: 'How long it takes', minutes: 7,
+    blurb: 'Time a real Turing machine as inputs double, read off big-O, and see why polynomial time, the class P, is the line that matters.' },
+  { id: 'np', number: 10, title: 'Easy to check, hard to find', minutes: 9,
+    blurb: 'Check a certificate, turn a formula into a graph and find its clique, and place problems on the map of P, NP, NP-complete and NP-hard.' },
 ]
 
 export const lessonById = (id: string) => LESSONS.find(lesson => lesson.id === id)

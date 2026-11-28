@@ -34,6 +34,13 @@ export type AiResult =
 
 const EPSILON = 'ε'
 
+/**
+ * The most states a generated machine may have. A sprawling machine (Turing machines especially) is
+ * hard to read, slow to lay out and usually wrong, so the prompt asks for at most this many, and a
+ * reply over the limit is rejected; the builder then asks the model once to shrink it.
+ */
+export const AI_MAX_STATES = 30
+
 export function systemPrompt(): string {
   return `You build formal-language machines for an automata editor. Reply with ONE JSON object and nothing else (no prose, no code fences).
 
@@ -56,7 +63,7 @@ Rules:
 - PDA: each entry in "symbols" is a rule "a,X→YZ": read a (or ε), pop X (or ε), push YZ (or ε); the first pushed character ends on top. The stack starts empty, so push a bottom marker like $ yourself if needed. Acceptance is by final state after reading all input.
 - TM: a single-tape deterministic Turing machine as in Sipser. Each entry in "symbols" is a rule "a→b,R": read a, write b, move L or R (no staying put). "_" is the blank. The tape is infinite to the right only, the input starts at the left end with the head on its first symbol, and moving left from the first cell stays put. Entering an "accept": true state halts and accepts. A missing rule halts and rejects, so leave the reject state out. At most one rule per state and read symbol. Tape-only marker symbols like x or y are fine in rules. Mark visited cells instead of shifting the input when you can.
 - CFG: nonterminals are single uppercase letters A–Z, the first rule's left side is the start symbol, terminals are any other single characters, ε is the empty string. Leave states and transitions out.
-- Keep machines small and correct: prefer the minimal DFA, and name states q0, q1, ... unless names are given.
+- Keep machines small and correct: prefer the minimal DFA, use at most ${AI_MAX_STATES} states, and name states q0, q1, ... unless names are given.
 - When reading a photo: copy the drawing faithfully (its state names, start arrow, double circles for accepting states, every edge label) instead of fixing or redesigning it. An unlabelled arrow into a state marks the start state.`
 }
 
@@ -204,6 +211,7 @@ export function specToResult(raw: unknown, target: AiTarget): AiResult {
 
   const rawStates = Array.isArray(raw.states) ? raw.states : []
   if (!rawStates.length) return { ok: false, message: 'The model returned no states.' }
+  if (rawStates.length > AI_MAX_STATES) return { ok: false, message: `The machine has ${rawStates.length} states; the limit is ${AI_MAX_STATES}. Build a smaller one, merging states that do the same job.` }
   const states: AutomatonState[] = []
   const idByName = new Map<string, string>()
   for (const [index, item] of rawStates.entries()) {

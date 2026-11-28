@@ -33,8 +33,8 @@ export function LessonIndex() {
       <header className="lesson-head">
         <Link className="lesson-back" href="/"><ArrowLeft size={14} aria-hidden="true" /> Home</Link>
         <p className="eyebrow">Interactive lessons · No background needed</p>
-        <h1 className="learn-title">From your first DFA to context-free grammars</h1>
-        <p className="learn-lead">Five short lessons that follow the first two chapters of Sipser. Every step asks you to try something, so you learn by doing, not by reading. Each one builds on the last.</p>
+        <h1 className="learn-title">From your first DFA to P vs NP</h1>
+        <p className="learn-lead">Short lessons that follow Sipser, from finite automata to undecidable problems and NP-completeness. Every step asks you to try something, so you learn by doing, not by reading. Each one builds on the last.</p>
         <Link className="primary-button learn-continue" href={`/learn/${next.id}`}>
           {done.length === LESSONS.length ? 'Review lesson 1' : partway(next.id) ? `Continue lesson ${next.number}, ${partway(next.id)}` : done.length === 0 ? 'Start lesson 1' : `Continue with lesson ${next.number}`} <ArrowRight size={14} aria-hidden="true" />
         </Link>
@@ -55,7 +55,7 @@ export function LessonIndex() {
           </li>
         })}
       </ol>
-      <p className="learn-later">Turing machines and decidability come later. Until then you can explore them in the <Link href="/tm">Turing machine workspace</Link> and on the <Link href="/deciders">deciders page</Link>.</p>
+      <p className="learn-later">Finished? Try your own machines in the <Link href="/tm">Turing machine workspace</Link>, step through the <Link href="/deciders">deciders</Link>, or turn formulas into graphs in the <Link href="/np-lab">NP reduction lab</Link>.</p>
     </main>
   </div>
 }
