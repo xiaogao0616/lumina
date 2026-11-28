@@ -130,3 +130,14 @@ test('small JSON slips from a model are repaired, and strings are left alone', (
   assert.throws(() => extractJson('{"a": [1, 2'))
   assert.match(repairPrompt('Build it', '{bad', 'Unexpected token'), /could not be used: Unexpected token/)
 })
+
+test('a generated machine over the state limit is rejected with a message the model can act on', () => {
+  const { AI_MAX_STATES, systemPrompt } = loadTs('ai-automaton.ts')
+  assert.match(systemPrompt(), new RegExp(`at most ${AI_MAX_STATES} states`))
+  const states = (n) => Array.from({ length: n }, (_, i) => ({ name: `q${i}`, start: i === 0, accept: i === n - 1 }))
+  const spec = (n) => ({ type: 'tm', title: 'Big', alphabet: ['0'], states: states(n), transitions: [{ from: 'q0', to: `q${n - 1}`, symbols: ['0→0,R'] }] })
+  assert.equal(specToResult(spec(AI_MAX_STATES), 'tm').ok, true)
+  const tooBig = specToResult(spec(AI_MAX_STATES + 1), 'tm')
+  assert.equal(tooBig.ok, false)
+  assert.match(tooBig.message, new RegExp(`${AI_MAX_STATES + 1} states; the limit is ${AI_MAX_STATES}`))
+})

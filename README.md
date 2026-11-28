@@ -12,7 +12,7 @@ Draw DFAs, NFAs, pushdown automata and Turing machines, write context-free gramm
 ![React](https://img.shields.io/badge/React_19-20232a?logo=react&logoColor=61dafb)
 ![React Flow](https://img.shields.io/badge/React_Flow-ff0072?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-156_passing-34d399)
+![Tests](https://img.shields.io/badge/tests-157_passing-34d399)
 ![No backend](https://img.shields.io/badge/backend-none-67e8f9)
 
 <img src="docs/screenshot-home.jpg" alt="The Automata Lab home page: the headline One workspace, five rulebooks, an animated automaton reading aab, and a yellow banner linking to five interactive lessons" width="100%">
@@ -99,7 +99,7 @@ The first time you open a DFA, NFA, PDA or TM tab, a three-step tour dims the pa
 
 The pink **✦ AI** button builds a machine from a description ("strings over {a, b} that end in ab") or from a photo of a hand-drawn diagram. You can choose the machine type or let the model pick. It runs in the background while you keep working.
 
-The result has to pass the same checks as an imported file before it opens in a new tab. Busy servers are retried, and broken answers are repaired or sent back to the model once. If something still fails, the error says what to do: check the key, wait out the quota, or rephrase.
+The result has to pass the same checks as an imported file before it opens in a new tab, and it can have at most 30 states, so a Turing machine can't sprawl. Busy servers are retried, and broken answers are repaired or sent back to the model once. If something still fails, the error says what to do: check the key, wait out the quota, or rephrase.
 
 It uses **your own API key**, called straight from the browser: Google Gemini (free key from [AI Studio](https://aistudio.google.com/apikey)), Anthropic, or any OpenAI-compatible endpoint. The key stays in this browser and goes only to the address you set.
 
@@ -127,7 +127,7 @@ npm run dev          # http://localhost:3000
 ```
 
 ```bash
-npm test             # 156 tests with node --test
+npm test             # 157 tests with node --test
 npm run typecheck    # route types + tsc --noEmit
 npm run build        # static export into out/
 ```
