@@ -12,6 +12,8 @@ export const LESSONS: LessonInfo[] = [
     blurb: 'Break a machine that tries to count, find the loop every DFA must have, and see why aⁿbⁿ isn’t regular.' },
   { id: 'cfg', number: 5, title: 'Grammars that grow strings', minutes: 7,
     blurb: 'Rewrite rules that can nest and count. Derive strings by hand, then write a grammar of your own.' },
+  { id: 'decidable', number: 6, title: 'Questions with guaranteed answers', minutes: 7,
+    blurb: 'Watch a Turing machine run forever, then play three deciders by hand and see why each one always stops.' },
 ]
 
 export const lessonById = (id: string) => LESSONS.find(lesson => lesson.id === id)

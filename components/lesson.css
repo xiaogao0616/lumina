@@ -129,3 +129,17 @@
 .learn-later { margin: 0; padding: 14px 16px; border: 1.5px dashed var(--border-soft); border-radius: var(--radius-md); color: var(--text-2); font-size: 14px; line-height: 1.6; }
 .learn-later a { color: var(--link); font-weight: 700; }
 @media (max-width: 600px) { .learn-card { grid-template-columns: auto 1fr; } .learn-card > svg { display: none; } }
+
+/* Lessons 6+: rule tables, run rows, formulas and side-by-side machines. */
+.lesson-formula { margin: 0; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: var(--radius-md); background: var(--raised); color: var(--text) !important; font: 600 15px var(--font-mono), monospace; overflow-x: auto; }
+.lesson-rules { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
+.lesson-rules th { padding: 6px 8px; border-bottom: 2px solid var(--line); color: var(--text-2); font-weight: 700; text-align: left; }
+.lesson-rules td { padding: 5px 8px; border-bottom: 1px solid var(--border-soft); color: var(--text); }
+.lesson-runs { display: grid; gap: 8px; }
+.lesson-run { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 12px; padding: 8px 12px; border: 1.5px solid var(--border-soft); border-radius: var(--radius-md); background: var(--raised); color: var(--text-2); font-size: var(--fs-body); }
+.lesson-run > code { color: var(--text); font-weight: 700; }
+.lesson-run > .secondary-button { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+.lesson-run.is-accepted { border-color: var(--success); }
+.lesson-run.is-rejected { border-color: var(--danger); }
+.lesson-run.is-loops { border-color: var(--accent); border-style: dashed; }
+.lesson-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
