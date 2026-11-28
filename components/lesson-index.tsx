@@ -55,7 +55,7 @@ export function LessonIndex() {
           </li>
         })}
       </ol>
-      <p className="learn-later">Time complexity and NP are coming next. Meanwhile you can explore the <Link href="/tm">Turing machine workspace</Link> and the <Link href="/deciders">deciders page</Link>.</p>
+      <p className="learn-later">NP and NP-completeness are coming next. Meanwhile you can explore the <Link href="/tm">Turing machine workspace</Link> and the <Link href="/deciders">deciders page</Link>.</p>
     </main>
   </div>
 }

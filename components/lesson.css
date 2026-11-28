@@ -164,3 +164,19 @@
   .lesson-map th, .lesson-map td { padding: 5px 4px; font-size: 12px; }
   .lesson-predict.is-wide .lesson-predict-row { grid-template-columns: 1fr; }
 }
+
+/* Lesson 9. */
+.lesson-bars { display: grid; gap: 8px; }
+.lesson-bar-row { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 12px; min-height: 38px; }
+.lesson-bar-row > code { color: var(--text); font-weight: 700; white-space: nowrap; }
+.lesson-bar-row > .secondary-button { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+.lesson-bar { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.lesson-bar > span { height: 22px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: var(--accent); animation: bar-grow .35s ease-out; transform-origin: left; }
+.lesson-bar > b { flex-shrink: 0; font: 700 var(--fs-small) var(--font-mono), monospace; }
+@keyframes bar-grow { from { transform: scaleX(0); } }
+.lesson-euclid { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lesson-euclid li { display: flex; align-items: center; gap: 8px; }
+.lesson-euclid li + li::before { content: '→'; color: var(--muted); }
+.lesson-euclid code { font-size: 15px; }
+@media (max-width: 520px) { .lesson-bar-row { grid-template-columns: 1fr; gap: 4px; } }
+@media (prefers-reduced-motion: reduce) { .lesson-bar > span { animation: none; } }

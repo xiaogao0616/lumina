@@ -18,6 +18,8 @@ export const LESSONS: LessonInfo[] = [
     blurb: 'Flip the diagonal of a table to build a machine that contradicts itself, and see why A_TM has no decider.' },
   { id: 'reductions', number: 8, title: 'Passing the hardness along', minutes: 8,
     blurb: 'Turn a halting decider into an A_TM decider, build a mapping reduction cell by cell, and sort questions with Rice’s theorem.' },
+  { id: 'time', number: 9, title: 'How long it takes', minutes: 7,
+    blurb: 'Time a real Turing machine as inputs double, read off big-O, and see why polynomial time, the class P, is the line that matters.' },
 ]
 
 export const lessonById = (id: string) => LESSONS.find(lesson => lesson.id === id)
