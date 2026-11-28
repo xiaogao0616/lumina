@@ -148,9 +148,19 @@
 .lesson-diag tbody th { text-align: left; color: var(--text); }
 .lesson-diag td.is-diagonal { background: color-mix(in srgb, var(--accent) 55%, transparent); color: #121212; font-weight: 700; }
 .lesson-diag tr.is-new th { color: var(--link); }
-.lesson-diag tr.is-new button { min-width: 64px; height: 30px; padding: 0 8px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: var(--raised); color: var(--text); font: 700 var(--fs-small) var(--font-mono), monospace; cursor: pointer; }
-.lesson-diag tr.is-new button.is-clash { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 18%, var(--raised)); }
+.lesson-diag tr.is-new button, .lesson-map button { min-width: 64px; height: 30px; padding: 0 8px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: var(--raised); color: var(--text); font: 700 var(--fs-small) var(--font-mono), monospace; cursor: pointer; }
+.lesson-diag tr.is-new button.is-clash, .lesson-map button.is-clash { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 18%, var(--raised)); }
 @media (max-width: 520px) {
   .lesson-diag th, .lesson-diag td { padding: 5px 3px; font-size: 12px; }
   .lesson-diag tr.is-new button { min-width: 0; width: 100%; padding: 0 2px; font-size: 11px; }
+}
+
+/* Lesson 8. */
+.lesson-map td:nth-child(n+2), .lesson-map th:nth-child(n+2) { text-align: center; }
+.lesson-predict.is-wide .lesson-predict-row { grid-template-columns: minmax(0, 1fr) auto; }
+.lesson-predict.is-wide .lesson-predict-row code { white-space: normal; }
+.lesson-predict.is-wide .lesson-predict-row small { grid-column: 1 / -1; }
+@media (max-width: 520px) {
+  .lesson-map th, .lesson-map td { padding: 5px 4px; font-size: 12px; }
+  .lesson-predict.is-wide .lesson-predict-row { grid-template-columns: 1fr; }
 }

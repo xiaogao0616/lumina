@@ -16,6 +16,8 @@ export const LESSONS: LessonInfo[] = [
     blurb: 'Watch a Turing machine run forever, then play three deciders by hand and see why each one always stops.' },
   { id: 'undecidable', number: 7, title: 'Questions no machine can answer', minutes: 7,
     blurb: 'Flip the diagonal of a table to build a machine that contradicts itself, and see why A_TM has no decider.' },
+  { id: 'reductions', number: 8, title: 'Passing the hardness along', minutes: 8,
+    blurb: 'Turn a halting decider into an A_TM decider, build a mapping reduction cell by cell, and sort questions with Rice’s theorem.' },
 ]
 
 export const lessonById = (id: string) => LESSONS.find(lesson => lesson.id === id)

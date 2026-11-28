@@ -143,16 +143,18 @@ export function Choices<T extends string>({ options, picked, answer, onPick }: {
  * "Accept or reject?" for a list of strings: the learner decides each one, then checks. Solved when
  * every answer is right. `explain` shows under a row after checking (for example the path taken).
  */
-export function PredictList({ words, truth, onSolved, yes = 'accept', no = 'reject', explain, success }: {
+export function PredictList({ words, truth, onSolved, yes = 'accept', no = 'reject', explain, success, wide }: {
   words: string[]; truth: (word: string) => boolean; onSolved: () => void; yes?: string; no?: string
   explain?: (word: string) => ReactNode; success: ReactNode
+  /** Rows hold phrases rather than short strings. */
+  wide?: boolean
 }) {
   const [guesses, setGuesses] = useState<Record<string, boolean>>({})
   const [checked, setChecked] = useState(false)
   const allRight = words.every(word => guesses[word] === truth(word))
   const guess = (word: string, value: boolean) => { setGuesses(current => ({ ...current, [word]: value })); setChecked(false) }
   return <>
-    <div className="lesson-predict">
+    <div className={`lesson-predict ${wide ? 'is-wide' : ''}`}>
       {words.map(word => <div key={word} className={`lesson-predict-row ${checked ? (guesses[word] === truth(word) ? 'is-right' : 'is-wrong') : ''}`}>
         <code>{word || 'ε'}</code>
         <div role="radiogroup" aria-label={`${word || 'the empty string'}: ${yes} or ${no}?`}>
